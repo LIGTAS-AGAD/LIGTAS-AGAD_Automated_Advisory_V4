@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LIGTAS-AGAD Landslide Warning Advisory System</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- External CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="main-wrapper">
+    <div id="advisory-container">
+        
+        <!-- Header -->
+        <header>
+            <h1 id="region-title">
+                <span class="brand-inline">LIGTAS-AGAD</span> CAR <span class="highlight">Landslide Warning Advisory</span>
+            </h1>
+            <div class="info-bar">
+                <span>Rainfall Threshold: <strong id="threshold-value">64 mm</strong></span>
+                <span>Petsa/Oras: <strong id="rainfall-date">--</strong></span>
+            </div>
+        </header>
+
+        <!-- Control Bar -->
+        <div class="control-bar">
+            <div class="region-nav">
+                <button id="btn-car" class="nav-btn active" onclick="switchRegion('car')">CAR</button>
+                <button id="btn-car-2" class="nav-btn" onclick="switchRegion('car-2')">CAR 2</button>
+                <button id="btn-calabarzon" class="nav-btn" onclick="switchRegion('calabarzon')">CALABARZON</button>
+                <button id="btn-bicol-region" class="nav-btn" onclick="switchRegion('bicol-region')">Bicol</button>
+                <button id="btn-northern-samar" class="nav-btn" onclick="switchRegion('northern-samar')">N. Samar</button>
+            </div>
+
+            <div class="action-controls">
+                <!-- AWS Layer Dropdown Menu -->
+                <div class="aws-dropdown-wrapper">
+                    <button class="tool-btn aws-toggle-btn" onclick="toggleAwsMenu(event)">
+                        AWS Layers (<span id="aws-active-count">0/0</span>) ▾
+                    </button>
+                    <div id="aws-menu-panel" class="aws-menu-panel">
+                        <div class="aws-menu-header">
+                            <span>Toggle AWS Stations</span>
+                            <div class="aws-menu-actions">
+                                <button onclick="selectAllAwsLayers(true)">All</button>
+                                <button onclick="selectAllAwsLayers(false)">None</button>
+                            </div>
+                        </div>
+                        <div id="aws-checkbox-list" class="aws-checkbox-list"></div>
+                    </div>
+                </div>
+
+                <!-- GeoJSON Loader Controls -->
+                <div class="geojson-control">
+                    <input type="text" id="geojson-url" placeholder="GeoJSON URL..." />
+                    <button class="tool-btn" onclick="loadGeoJsonUrl()">Load URL</button>
+                    
+                    <!-- File Upload Input -->
+                    <input type="file" id="geojson-file-input" accept=".geojson, .json" style="display: none;" onchange="handleGeoJsonFileUpload(event)" />
+                    <button class="tool-btn" onclick="document.getElementById('geojson-file-input').click()" title="Upload GeoJSON File from disk">📁 Upload GeoJSON</button>
+                    
+                    <button class="tool-btn btn-danger" onclick="clearGeoJson()" title="Clear Custom GeoJSON Layer">✕ Clear</button>
+                </div>
+
+                <!-- Custom Color Picker -->
+                <div class="color-picker-wrapper" title="Set GeoJSON Layer Accent Color">
+                    <input type="color" id="geojson-color" value="#3b82f6" onchange="updateGeoJsonColor(this.value)">
+                </div>
+
+                <!-- Custom Logo Upload -->
+                <div class="logo-control">
+                    <input type="file" id="logo-file-input" accept="image/*" style="display: none;" onchange="handleLogoUpload(event)" />
+                    <button class="tool-btn" onclick="document.getElementById('logo-file-input').click()" title="Upload Custom Footer Logo">🖼️ Logo</button>
+                </div>
+
+                <!-- Download Graphic -->
+                <button class="download-btn" onclick="downloadAdvisory()">⬇ Download Image</button>
+            </div>
+        </div>
+
+        <!-- Dynamic Infographic Warning Bulletin -->
+        <div id="bulletin-banner-card" class="bulletin-card level-3">
+            <div class="bulletin-header-bar">
+                <div class="bulletin-title-wrapper">
+                    <h2 id="bulletin-alert-title">MATINDING BABALA: LANDSLIDE ALERT LEVEL 3 (High Risk/Critical)</h2>
+                    <span id="bulletin-region-label" class="bulletin-subtitle">PROBINSYA / REHIYON: CORDILLERA ADMINISTRATIVE REGION</span>
+                </div>
+                <div class="bulletin-sub-tag">MAGMASID,
+MAG-ULAT,
+MAGING LIGTAS, PINAS!</div>
+            </div>
+
+            <!-- Synchronized Meta Badges Bar -->
+            <div class="bulletin-meta-row">
+                <div class="bulletin-badge date-badge">
+                    <span class="badge-icon">📅</span>
+                    <div>
+                        <div class="badge-label">Petsa / Oras:</div>
+                        <strong id="bulletin-datetime">--</strong>
+                    </div>
+                </div>
+
+                <div class="bulletin-badge alert-badge">
+                    <span class="badge-icon">⏳</span>
+                    <strong id="bulletin-hazard-text">Mataas ang panganib ng pagguho ng lupa sa susunod na 12 oras!</strong>
+                </div>
+            </div>
+
+            <!-- Situation & Action Guidelines Grid -->
+            <div class="bulletin-content-grid">
+                <!-- Situation Report Box -->
+                <div class="bulletin-box situation-box">
+                    <h3>SITUATION REPORT</h3>
+                    <p id="bulletin-sitrep-text">
+                        Ipinagbibigay-alam sa lahat ng Municipal Disaster Risk Reduction and Management Councils (MDRRMCs) at sa publiko na ang mga lungsod at bayan ng 
+                        <strong id="bulletin-municipality-list">--</strong> 
+                        ay kasalukuyang nasa ilalim ng 
+                        <span id="bulletin-level-badge" class="inline-level-badge level-3">LANDSLIDE ALERT LEVEL 3</span>.
+                    </p>
+                    <p class="bulletin-weather-desc">
+                        Dahil sa pinagsamang epekto ng pag-ulan at mataas na soil saturation sa probinsya, ang mga dalisdis at kabundukan ay nakatanggap ng kritikal na antas ng ulan na magdudulot ng pagguho ng lupa.
+                    </p>
+                </div>
+
+                <!-- Action Guidelines Box -->
+                <div class="bulletin-box action-box">
+                    <h3>Ano ang Dapat Gawin?</h3>
+                    
+                    <div class="action-section">
+                        <div class="section-tag lgu-tag">Para sa LGU at DRRM Officers</div>
+                        <p id="bulletin-lgu-action">
+                            Iniaatas sa lahat ng kinauukulang Local Chief Executives at DRRM Officers ang agarang pagpapatupad ng kani-kanilang localized Emergency Response Plans...
+                        </p>
+                    </div>
+
+                    <div class="action-section">
+                        <div class="section-tag public-tag">Para sa Publiko</div>
+                        <ul id="bulletin-public-action-list" class="public-checklist">
+                            <li>⚠️ <span>Manatiling Alerto at Mag-ingat.</span></li>
+                            <li>🎒 <span>Ihanda ang Emergency Kit (Go Bag).</span></li>
+                            <li>🏃 <span>Maging Handa na Lumikas kapag Inatasan.</span></li>
+                            <li>🚫 <span>Iwasan ang mga Daan na may panganib ng pagguho.</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Dashboard Content Grid -->
+        <div id="dashboard-content">
+            
+            <!-- Left Panel Column (Table + Compact Communication Panel) -->
+            <div id="left-panel">
+                <!-- Advisory Table -->
+                <div id="table-panel">
+                    <div class="table-scroll-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>AWS</th>
+                                    <th>Covered Municipality</th>
+                                    <th>Cumulative</th>
+                                    <th>Warning</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-body">
+                                <!-- Dynamic Table Content -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="table-footer-label">Computed threshold in Cordillera Administrative Region (CAR)</div>
+                </div>
+
+                <!-- Compact Communication Protocol Panel -->
+                <div id="communication-panel">
+                    <h3>📢 Communication Protocol & Response Actions</h3>
+                    <div id="actions-container" class="actions-grid">
+                        <!-- Dynamic Action Cards -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resizer Handle -->
+            <div class="resizer" id="resizer"></div>
+
+            <!-- Right Panel Column (Map) -->
+            <div id="map-panel">
+                <div id="advisory-map"></div>
+                
+                <!-- Map Legend -->
+                <div class="map-legend">
+                    <h4>Warning Levels</h4>
+                    <div class="legend-item"><span class="color-box" style="background:#dc2626;"></span> Level 3 (High Risk)</div>
+                    <div class="legend-item"><span class="color-box" style="background:#fd7e14;"></span> Level 2 (Medium Risk)</div>
+                    <div class="legend-item"><span class="color-box" style="background:#facc15;"></span> Level 1 (Advisory)</div>
+                    <div class="legend-item"><span class="color-box" style="background:#4ade80;"></span> Level 0 (Normal)</div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Footer Banner -->
+        <footer>
+            <div class="footer-container">
+                <img id="static-footer-image" src="footer.png" alt="LIGTAS Footer Banner" onerror="this.style.display='none'">
+                <div id="custom-logo-container" class="custom-logo-container" style="display: none;">
+                    <img id="custom-logo-img" src="" alt="Custom Logo">
+                </div>
+            </div>
+        </footer>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="loading-overlay" style="display: none;">
+            <div class="spinner"></div>
+            <p id="loading-text" style="margin-top: 10px; font-size: 0.9rem;">Fetching Advisory Data...</p>
+        </div>
+
+        <div id="error-message"></div>
+    </div>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- PapaParse CSV Reader -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<!-- html2canvas for Download -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<!-- Application Script -->
+<script src="script.js"></script>
+</body>
+</html>
