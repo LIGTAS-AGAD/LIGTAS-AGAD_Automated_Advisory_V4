@@ -7,14 +7,6 @@ const CONFIG = {
         threshold: '64 mm',
         footer: 'Computed threshold in Cordillera Administrative Region (CAR)'
     },
-    'car-2': {
-        url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSosfBP3StMyRUzwI0tUZPsLjPVH1zePCz8gZbTMOzjOvnonbmNCoy5VT46UxO0qdqb-Wm9EqTpXp8y/pub?gid=1838395441&single=true&output=csv',
-        title: '<span class="brand-inline">LIGTAS-AGAD</span> CAR <span class="highlight">Landslide Warning Advisory</span>',
-        regionName: 'CORDILLERA ADMINISTRATIVE REGION (CAR)',
-        provinceName: 'PROBINSYA NG BENGUET',
-        threshold: '64 mm',
-        footer: 'Computed threshold in Cordillera Administrative Region (CAR)'
-    },
     'calabarzon': {
         url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSosfBP3StMyRUzwI0tUZPsLjPVH1zePCz8gZbTMOzjOvnonbmNCoy5VT46UxO0qdqb-Wm9EqTpXp8y/pub?gid=1182911633&single=true&output=csv',
         title: '<span class="brand-inline">LIGTAS-AGAD</span> CALABARZON <span class="highlight">Landslide Warning Advisory</span>',
@@ -42,60 +34,33 @@ const CONFIG = {
 };
 
 const AWS_CONFIG_LIST = [
-    { key: 'LANDGRANT', url: 'https://raw.githubusercontent.com/Gabzrock/LIGTASkanaba/refs/heads/main/LIGTAS_Landgrant%20AWS_RIL_HL.geojson', name: 'LIGTAS LANDGRANT AWS', defaultEnabled: true },
-    { key: 'NAC', url: 'https://raw.githubusercontent.com/Gabzrock/LIGTASkanaba/refs/heads/main/LIGTAS_NAC%20AWS_RIL_HL.geojson', name: 'LIGTAS NAC 2026', defaultEnabled: true },
-    { key: 'PGPC', url: 'https://raw.githubusercontent.com/Gabzrock/LIGTASkanaba/refs/heads/main/LIGTAS_PGPC%20AWS_RIL_HL.geojson', name: 'VOTE PGPC AWS', defaultEnabled: true },
-    { key: 'MANKAYAN', url: 'https://api.maptiler.com/data/019f44a0-c1f3-7d6c-a4cd-bf01ec8769e3/features.json?key=HnKlTumvQGjlZFqKA35V', name: 'LIGTAS MANKAYAN AWS', defaultEnabled: true },
-    { key: 'BUGUIAS', url: 'https://raw.githubusercontent.com/Gabzrock/LIGTASkanaba/refs/heads/main/LIGTAS_Buguias%20AWS_RIL_HL.geojson', name: 'LIGTAS BUGUIAS AWS', defaultEnabled: true },
-    { key: 'BOKOD', url: 'https://raw.githubusercontent.com/Gabzrock/LIGTASkanaba/refs/heads/main/LIGTAS_Bokod%20AWS_RIL_HL.geojson', name: 'LIGTAS BOKOD AWS', defaultEnabled: true },
-    { key: 'COROZ', url: 'https://raw.githubusercontent.com/Gabzrock/LIGTASkanaba/refs/heads/main/LIGTAS_Coroz%20AWS_RIL_HL.geojson', name: 'LIGTAS COROZ AWS', defaultEnabled: true },
-    { key: 'ITOGON', url: 'https://raw.githubusercontent.com/Gabzrock/LIGTASkanaba/refs/heads/main/LIGTAS_Itogon%20AWS_RIL_HL.geojson', name: 'LIGTAS ITOGON AWS', defaultEnabled: true },
-    { key: 'CATANAUAN', url: 'https://raw.githubusercontent.com/Gabzrock/LIGTASkanaba/refs/heads/main/LIGTAS_Catanauan%20AWS_RIL_HL.geojson', name: 'LIGTAS CATANAUAN AWS', defaultEnabled: true },
-    { key: 'CATARMAN', url: 'https://raw.githubusercontent.com/Gabzrock/LIGTASkanaba/refs/heads/main/LIGTAS_Catarman%20AWS_RIL_HL.geojson', name: 'LIGTAS UEP-CATARMAN AWS', defaultEnabled: true },
-    { key: 'Los Banos, Laguna AWS', url: 'https://raw.githubusercontent.com/LIGTAS-AGAD/LIGTAS/refs/heads/main/UPLB%20Laguna%20AWS_RIL_HL.geojson', name: 'PAGASA-UP Los Banos, Laguna AWS', defaultEnabled: true },
-    { key: 'Polillio-Quezon AWS', url: 'https://raw.githubusercontent.com/LIGTAS-AGAD/LIGTAS/refs/heads/main/Polilo%20Quezon%20AWS_RIL_HL.geojson', name: 'PAGASA-Polillio-Quezon AWS', defaultEnabled: true },
-    { key: 'Mulanay, Quezon AWS', url: 'https://raw.githubusercontent.com/LIGTAS-AGAD/LIGTAS/refs/heads/main/Mulanay%20Quezon%20AWS_RIL_HL.geojson', name: 'PAGASA-Mulanay, Quezon AWS', defaultEnabled: true },
-    { key: 'Pili Camarines Sur AWS', url: 'https://raw.githubusercontent.com/LIGTAS-AGAD/LIGTAS/refs/heads/main/Pili%20Camarines%20Sur%20AWS_RIL_HL.geojson', name: 'PAGASA-Pili Camarines Sur AWS', defaultEnabled: true },
-    { key: 'Legazpi AWS', url: 'https://raw.githubusercontent.com/LIGTAS-AGAD/LIGTAS/refs/heads/main/Legazpi%20Albay%20AWS_RIL_HL.geojson', name: 'PAGASA-Legazpi AWS', defaultEnabled: true },
-    { key: 'Northern-Samar AWS', url: 'https://raw.githubusercontent.com/LIGTAS-AGAD/LIGTAS/refs/heads/main/Catarman%20Northern%20Samar%20AWS_RIL_HL.geojson', name: 'PAGASA-Northern-Samar AWS', defaultEnabled: true },
-    { key: 'Ambulong Tanauan Batangas AWS', url: 'https://raw.githubusercontent.com/LIGTAS-AGAD/LIGTAS/refs/heads/main/Ambulong%20Tanauan%20Batangas%20AWS_RIL_HL.geojson', name: 'PAGASA-Ambulong Tanauan Batangas AWS', defaultEnabled: true },
-    { key: 'Lipa, Batangas AWS', url: 'https://raw.githubusercontent.com/LIGTAS-AGAD/LIGTAS/refs/heads/main/Lipa%20Batangas%20AWS_RIL_HL.geojson', name: 'PAGASA-Lipa, Batangas AWS', defaultEnabled: true },
-    { key: 'Tayabas-Quezon AWS', url: 'https://raw.githubusercontent.com/LIGTAS-AGAD/LIGTAS/refs/heads/main/Tayabas%20Quezon%20AWS_RIL_HL.geojson', name: 'PAGASA-Tayabas-Quezon AWS', defaultEnabled: true },
-    { key: 'Tanay, Rizal AWS', url: 'https://raw.githubusercontent.com/LIGTAS-AGAD/LIGTAS/refs/heads/main/Tanay%20Rizal%20AWS_RIL_HL.geojson', name: 'PAGASA-Tanay, Rizal AWS', defaultEnabled: true },
-    { key: 'Sorsogon, Sorsogon AWS', url: 'https://raw.githubusercontent.com/LIGTAS-AGAD/LIGTAS/refs/heads/main/Sorsogon%20Sorsogon%20AWS_RIL_HL.geojson', name: 'PAGASA-Sorsogon, Sorsogon AWS', defaultEnabled: true },
-    { key: 'Virac, Catanduanes AWS', url: 'https://raw.githubusercontent.com/LIGTAS-AGAD/LIGTAS/refs/heads/main/Virac%20Catanduanes%20AWS_RIL_HL.geojson', name: 'PAGASA-Virac, Catanduanes AWS', defaultEnabled: true },
-    { key: 'LIGTAS-AGAD PASIL AWS', url: 'https://raw.githubusercontent.com/LIGTAS-AGAD/LIGTAS/refs/heads/main/LIGTAS_Pasil%20AWS_RIL_HL.geojson', name: 'LIGTAS-AGAD PASIL AWS', defaultEnabled: true },
-    { key: 'LIGTAS-AGAD Licuan-Baay AWS', url: 'https://raw.githubusercontent.com/LIGTAS-AGAD/LIGTAS/refs/heads/main/LIGTAS_Licuan%20Baay%20AWS_RIL_HL.geojson', name: 'LIGTAS-AGAD Licuan-Baay AWS', defaultEnabled: true },
-    { key: 'LIGTAS-AGAD Calanasan AWS', url: 'https://raw.githubusercontent.com/LIGTAS-AGAD/LIGTAS/refs/heads/main/LIGTAS_Calanasan%20AWS_RIL_HL.geojson', name: 'LIGTAS-AGAD Calanasan AWS', defaultEnabled: true },
-    { key: 'LIGTAS-AGAD Barlig AWS', url: 'https://raw.githubusercontent.com/LIGTAS-AGAD/LIGTAS/refs/heads/main/LIGTAS_Barlig%20AWS_RIL_HL.geojson', name: 'LIGTAS-AGAD Barlig AWS', defaultEnabled: true }
+    { key: 'LANDGRANT', url: 'https://raw.githubusercontent.com/Gabzrock/LIGTASkanaba/refs/heads/main/LIGTAS_Landgrant%20AWS_RIL_HL.geojson', name: 'LIGTAS LANDGRANT AWS', defaultEnabled: true, regions: ['calabarzon'] },
+    { key: 'NAC', url: 'https://raw.githubusercontent.com/Gabzrock/LIGTASkanaba/refs/heads/main/LIGTAS_NAC%20AWS_RIL_HL.geojson', name: 'LIGTAS NAC 2026', defaultEnabled: true, regions: ['bicol-region'] },
+    { key: 'PGPC', url: 'https://raw.githubusercontent.com/Gabzrock/LIGTASkanaba/refs/heads/main/LIGTAS_PGPC%20AWS_RIL_HL.geojson', name: 'VOTE PGPC AWS', defaultEnabled: true, regions: ['calabarzon', 'bicol-region'] },
+    { key: 'MANKAYAN', url: 'https://api.maptiler.com/data/019f44a0-c1f3-7d6c-a4cd-bf01ec8769e3/features.json?key=HnKlTumvQGjlZFqKA35V', name: 'LIGTAS MANKAYAN AWS', defaultEnabled: true, regions: ['car'] },
+    { key: 'BUGUIAS', url: 'https://raw.githubusercontent.com/Gabzrock/LIGTASkanaba/refs/heads/main/LIGTAS_Buguias%20AWS_RIL_HL.geojson', name: 'LIGTAS BUGUIAS AWS', defaultEnabled: true, regions: ['car'] },
+    { key: 'BOKOD', url: 'https://raw.githubusercontent.com/Gabzrock/LIGTASkanaba/refs/heads/main/LIGTAS_Bokod%20AWS_RIL_HL.geojson', name: 'LIGTAS BOKOD AWS', defaultEnabled: true, regions: ['car'] },
+    { key: 'COROZ', url: 'https://raw.githubusercontent.com/Gabzrock/LIGTASkanaba/refs/heads/main/LIGTAS_Coroz%20AWS_RIL_HL.geojson', name: 'LIGTAS COROZ AWS', defaultEnabled: true, regions: ['car'] },
+    { key: 'ITOGON', url: 'https://raw.githubusercontent.com/Gabzrock/LIGTASkanaba/refs/heads/main/LIGTAS_Itogon%20AWS_RIL_HL.geojson', name: 'LIGTAS ITOGON AWS', defaultEnabled: true, regions: ['car'] },
+    { key: 'CATANAUAN', url: 'https://raw.githubusercontent.com/Gabzrock/LIGTASkanaba/refs/heads/main/LIGTAS_Catanauan%20AWS_RIL_HL.geojson', name: 'LIGTAS CATANAUAN AWS', defaultEnabled: true, regions: ['calabarzon'] },
+    { key: 'CATARMAN', url: 'https://raw.githubusercontent.com/Gabzrock/LIGTASkanaba/refs/heads/main/LIGTAS_Catarman%20AWS_RIL_HL.geojson', name: 'LIGTAS UEP-CATARMAN AWS', defaultEnabled: true, regions: ['northern-samar'] },
+    { key: 'Los Banos, Laguna AWS', url: 'https://raw.githubusercontent.com/LIGTAS-AGAD/LIGTAS/refs/heads/main/UPLB%20Laguna%20AWS_RIL_HL.geojson', name: 'PAGASA-UP Los Banos, Laguna AWS', defaultEnabled: true, regions: ['calabarzon'] },
+    { key: 'Polillio-Quezon AWS', url: 'https://raw.githubusercontent.com/LIGTAS-AGAD/LIGTAS/refs/heads/main/Polilo%20Quezon%20AWS_RIL_HL.geojson', name: 'PAGASA-Polillio-Quezon AWS', defaultEnabled: true, regions: ['calabarzon'] },
+    { key: 'Mulanay, Quezon AWS', url: 'https://raw.githubusercontent.com/LIGTAS-AGAD/LIGTAS/refs/heads/main/Mulanay%20Quezon%20AWS_RIL_HL.geojson', name: 'PAGASA-Mulanay, Quezon AWS', defaultEnabled: true, regions: ['calabarzon'] },
+    { key: 'Pili Camarines Sur AWS', url: 'https://raw.githubusercontent.com/LIGTAS-AGAD/LIGTAS/refs/heads/main/Pili%20Camarines%20Sur%20AWS_RIL_HL.geojson', name: 'PAGASA-Pili Camarines Sur AWS', defaultEnabled: true, regions: ['bicol-region'] },
+    { key: 'Legazpi AWS', url: 'https://raw.githubusercontent.com/LIGTAS-AGAD/LIGTAS/refs/heads/main/Legazpi%20Albay%20AWS_RIL_HL.geojson', name: 'PAGASA-Legazpi AWS', defaultEnabled: true, regions: ['bicol-region'] },
+    { key: 'Northern-Samar AWS', url: 'https://raw.githubusercontent.com/LIGTAS-AGAD/LIGTAS/refs/heads/main/Catarman%20Northern%20Samar%20AWS_RIL_HL.geojson', name: 'PAGASA-Northern-Samar AWS', defaultEnabled: true, regions: ['northern-samar'] },
+    { key: 'Ambulong Tanauan Batangas AWS', url: 'https://raw.githubusercontent.com/LIGTAS-AGAD/LIGTAS/refs/heads/main/Ambulong%20Tanauan%20Batangas%20AWS_RIL_HL.geojson', name: 'PAGASA-Ambulong Tanauan Batangas AWS', defaultEnabled: true, regions: ['calabarzon'] },
+    { key: 'Lipa, Batangas AWS', url: 'https://raw.githubusercontent.com/LIGTAS-AGAD/LIGTAS/refs/heads/main/Lipa%20Batangas%20AWS_RIL_HL.geojson', name: 'PAGASA-Lipa, Batangas AWS', defaultEnabled: true, regions: ['calabarzon'] },
+    { key: 'Tayabas-Quezon AWS', url: 'https://raw.githubusercontent.com/LIGTAS-AGAD/LIGTAS/refs/heads/main/Tayabas%20Quezon%20AWS_RIL_HL.geojson', name: 'PAGASA-Tayabas-Quezon AWS', defaultEnabled: true, regions: ['calabarzon'] },
+    { key: 'Tanay, Rizal AWS', url: 'https://raw.githubusercontent.com/LIGTAS-AGAD/LIGTAS/refs/heads/main/Tanay%20Rizal%20AWS_RIL_HL.geojson', name: 'PAGASA-Tanay, Rizal AWS', defaultEnabled: true, regions: ['calabarzon'] },
+    { key: 'Sorsogon, Sorsogon AWS', url: 'https://raw.githubusercontent.com/LIGTAS-AGAD/LIGTAS/refs/heads/main/Sorsogon%20Sorsogon%20AWS_RIL_HL.geojson', name: 'PAGASA-Sorsogon, Sorsogon AWS', defaultEnabled: true, regions: ['bicol-region'] },
+    { key: 'Virac, Catanduanes AWS', url: 'https://raw.githubusercontent.com/LIGTAS-AGAD/LIGTAS/refs/heads/main/Virac%20Catanduanes%20AWS_RIL_HL.geojson', name: 'PAGASA-Virac, Catanduanes AWS', defaultEnabled: true, regions: ['bicol-region'] },
+    { key: 'LIGTAS-AGAD PASIL AWS', url: 'https://raw.githubusercontent.com/LIGTAS-AGAD/LIGTAS/refs/heads/main/LIGTAS_Pasil%20AWS_RIL_HL.geojson', name: 'LIGTAS-AGAD PASIL AWS', defaultEnabled: true, regions: ['car'] },
+    { key: 'LIGTAS-AGAD Licuan-Baay AWS', url: 'https://raw.githubusercontent.com/LIGTAS-AGAD/LIGTAS/refs/heads/main/LIGTAS_Licuan%20Baay%20AWS_RIL_HL.geojson', name: 'LIGTAS-AGAD Licuan-Baay AWS', defaultEnabled: true, regions: ['car'] },
+    { key: 'LIGTAS-AGAD Calanasan AWS', url: 'https://raw.githubusercontent.com/LIGTAS-AGAD/LIGTAS/refs/heads/main/LIGTAS_Calanasan%20AWS_RIL_HL.geojson', name: 'LIGTAS-AGAD Calanasan AWS', defaultEnabled: true, regions: ['car'] },
+    { key: 'LIGTAS-AGAD Barlig AWS', url: 'https://raw.githubusercontent.com/LIGTAS-AGAD/LIGTAS/refs/heads/main/LIGTAS_Barlig%20AWS_RIL_HL.geojson', name: 'LIGTAS-AGAD Barlig AWS', defaultEnabled: true, regions: ['car'] }
 ];
-
-const ACTION_PROTOCOLS = {
-    '3': {
-        levelLabel: 'Warning Level 3 - High Risk',
-        actionTitle: 'Mandatory Evacuation & Emergency Operations',
-        details: 'Issue immediate emergency siren warnings. Execute pre-emptive/mandatory evacuation of families in high-risk zones. Activate municipal Emergency Operations Centers (EOC) and mobilize response units.',
-        badgeClass: 'badge-level-3'
-    },
-    '2': {
-        levelLabel: 'Warning Level 2 - Moderate Risk',
-        actionTitle: 'Alert & Preparation',
-        details: 'Alert Barangay Disaster Risk Reduction Management Committees (BDRRMCs). Advise communities to prepare "Go Bags", secure household structures, and monitor vulnerable slopes.',
-        badgeClass: 'badge-level-2'
-    },
-    '1': {
-        levelLabel: 'Warning Level 1 - Low Risk / Advisory',
-        actionTitle: 'Awareness & Continuous Monitoring',
-        details: 'Broadcast regular weather and rain updates to local communities. Conduct continuous monitoring of soil saturation and rainfall gauges.',
-        badgeClass: 'badge-level-1'
-    },
-    '0': {
-        levelLabel: 'Normal / Level 0',
-        actionTitle: 'Standard Monitoring',
-        details: 'Routine daily monitoring of automatic weather stations and weather forecasts.',
-        badgeClass: 'badge-level-0'
-    }
-};
 
 const TAGALOG_MONTHS = [
     'Enero', 'Pebreso', 'Marso', 'Abril', 'Mayo', 'Hunyo',
@@ -113,17 +78,44 @@ let awsLayersRegistry = {};
 let awsLayerState = {};    
 let geojsonLayer = null;
 let currentCustomGeoJsonData = null;
+let highlightedLayer = null;
+let currentCustomIconUrl = null;
 
-AWS_CONFIG_LIST.forEach(item => {
-    awsLayerState[item.key] = item.defaultEnabled !== false;
-});
+function filterAwsLayersByRegion(data = []) {
+    const activeKeysInCsv = new Set(
+        data.map(row => row._awsKey).filter(Boolean)
+    );
 
-/**
- * Enforces Philippine Standard Time (Asia/Manila) local time formatting
- */
+    AWS_CONFIG_LIST.forEach(cfg => {
+        const isRegionMatch = Array.isArray(cfg.regions) && cfg.regions.includes(currentRegionId);
+        const isCsvMatch = activeKeysInCsv.has(cfg.key);
+
+        awsLayerState[cfg.key] = isRegionMatch || isCsvMatch;
+    });
+}
+
+function initTheme() {
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateThemeIcon(savedTheme);
+}
+
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    updateThemeIcon(newTheme);
+}
+
+function updateThemeIcon(theme) {
+    const icon = document.getElementById('theme-toggle-icon');
+    if (!icon) return;
+    icon.className = theme === 'light' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+}
+
 function formatTagalogDateTime() {
     const now = new Date();
-
     const options = {
         timeZone: 'Asia/Manila',
         year: 'numeric',
@@ -152,9 +144,6 @@ function formatTagalogDateTime() {
     return `${day} ${monthName} ${year} | ${hour}:${minute} ${dayPeriod}`;
 }
 
-/**
- * Synchronizes header & bulletin date tags with live local time
- */
 function syncCurrentTime() {
     const formattedDate = formatTagalogDateTime();
     const rainfallDateEl = document.getElementById('rainfall-date');
@@ -164,8 +153,28 @@ function syncCurrentTime() {
     if (bulletinDateEl) bulletinDateEl.innerText = formattedDate;
 }
 
-// Automatically refresh time every 30 seconds
 setInterval(syncCurrentTime, 30000);
+
+function renderFooterCredits() {
+    const footerContainer = document.getElementById('ligtas-footer');
+    if (!footerContainer) return;
+
+    footerContainer.innerHTML = `
+        <div class="footer-inner">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <strong style="color:var(--brand-color); font-size:0.85rem; letter-spacing:0.5px;">LIGTAS-AGAD</strong>
+                <span>|</span>
+                <span>Landslide Warning & Early Advisory Portal</span>
+            </div>
+            <div>
+                <strong>Data Credits:</strong> DOST-PAGASA, DENR-MGB, DOST-Project LIGTAS-AGAD, DOST-Project SARAI
+            </div>
+            <div style="font-style:italic; opacity:0.8;">
+                &copy; LIGTAS Project. All rights reserved.
+            </div>
+        </div>
+    `;
+}
 
 async function fetchWithTimeout(resource, options = {}) {
     const { timeout = 6000 } = options;
@@ -219,6 +228,30 @@ function findWarningLevel(awsKey, warningMap) {
     return 'N/A';
 }
 
+function buildAttributeTableHTML(properties) {
+    if (!properties || Object.keys(properties).length === 0) {
+        return '<p style="margin:4px 0; font-size:0.75rem; color:#64748b; font-style:italic;">No attributes available.</p>';
+    }
+
+    let rows = '';
+    for (const [key, val] of Object.entries(properties)) {
+        rows += `
+            <tr>
+                <td style="font-weight: bold; padding: 3px 6px 3px 0; border-bottom: 1px solid #e2e8f0; color: #334155;">${key}</td>
+                <td style="padding: 3px 0; border-bottom: 1px solid #e2e8f0; color: #0f172a;">${val !== null && val !== undefined ? val : 'N/A'}</td>
+            </tr>
+        `;
+    }
+
+    return `
+        <div style="max-height: 180px; overflow-y: auto; margin-top: 6px; border-top: 1px solid #cbd5e1; padding-top: 6px;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem;">
+                ${rows}
+            </table>
+        </div>
+    `;
+}
+
 async function initSynchronizedAWSLayer(awsKey, geoJsonUrl, displayName, warningMap) {
     const warningLevel = findWarningLevel(awsKey, warningMap);
     const color = getWarningColor(warningLevel);
@@ -234,27 +267,78 @@ async function initSynchronizedAWSLayer(awsKey, geoJsonUrl, displayName, warning
             geoJsonCache.set(geoJsonUrl, geoData);
         }
 
-        const layer = L.geoJSON(geoData, {
+        let currentLayerGroup = null;
+
+        currentLayerGroup = L.geoJSON(geoData, {
             style: {
                 color: color,
                 fillColor: color,
                 fillOpacity: 0.45,
                 weight: 2
             },
+            pointToLayer: (feature, latlng) => {
+                if (currentCustomIconUrl) {
+                    const icon = L.icon({
+                        iconUrl: currentCustomIconUrl,
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 32],
+                        popupAnchor: [0, -32]
+                    });
+                    return L.marker(latlng, { icon: icon });
+                }
+                return L.circleMarker(latlng, {
+                    radius: 7,
+                    fillColor: color,
+                    color: '#ffffff',
+                    weight: 1.5,
+                    opacity: 0.9,
+                    fillOpacity: 0.85
+                });
+            },
             onEachFeature: (feature, l) => {
+                const attrHtml = buildAttributeTableHTML(feature.properties);
+
                 l.bindPopup(`
-                    <div style="color:#000; font-family:sans-serif;">
-                        <h4 style="margin:0 0 5px 0;">${displayName}</h4>
-                        <strong>Warning Level:</strong> 
-                        <span style="background:${color}; color:${warningLevel === '1' ? '#000' : '#fff'}; padding:2px 6px; border-radius:3px; font-weight:bold;">
-                            ${warningLevel}
-                        </span>
+                    <div style="color:#000; font-family:sans-serif; max-width:280px;">
+                        <h4 style="margin:0 0 4px 0; color:#0284c7; font-size:0.85rem;">${displayName}</h4>
+                        <div style="margin-bottom:6px;">
+                            <strong>Warning Level:</strong> 
+                            <span style="background:${color}; color:${warningLevel === '1' ? '#000' : '#fff'}; padding:2px 6px; border-radius:3px; font-weight:bold; font-size:0.75rem;">
+                                ${warningLevel}
+                            </span>
+                        </div>
+                        <strong>Feature Properties:</strong>
+                        ${attrHtml}
                     </div>
                 `);
+
+                l.on('click', (e) => {
+                    L.DomEvent.stopPropagation(e);
+
+                    if (highlightedLayer && highlightedLayer !== l) {
+                        if (typeof highlightedLayer._parentLayerGroup?.resetStyle === 'function') {
+                            highlightedLayer._parentLayerGroup.resetStyle(highlightedLayer);
+                        }
+                    }
+
+                    highlightedLayer = l;
+                    l._parentLayerGroup = currentLayerGroup;
+
+                    if (typeof l.setStyle === 'function') {
+                        l.setStyle({
+                            weight: 4,
+                            color: '#fbbf24',
+                            fillOpacity: 0.75
+                        });
+                    }
+                    if (typeof l.bringToFront === 'function') {
+                        l.bringToFront();
+                    }
+                });
             }
         });
 
-        return { key: awsKey, layer, bounds: layer.getBounds(), name: displayName };
+        return { key: awsKey, layer: currentLayerGroup, bounds: currentLayerGroup.getBounds(), name: displayName };
     } catch (err) {
         console.warn(`GeoJSON bypass for ${displayName}:`, err.message);
         return null;
@@ -263,6 +347,8 @@ async function initSynchronizedAWSLayer(awsKey, geoJsonUrl, displayName, warning
 
 function switchRegion(regionId) {
     currentRegionId = regionId;
+    clearGeoJson();
+
     document.getElementById('loading-text').innerText = 'Fetching Advisory Data...';
     document.getElementById('loading-overlay').style.display = 'flex';
 
@@ -274,10 +360,11 @@ function switchRegion(regionId) {
     document.getElementById('error-message').style.display = 'none';
     
     document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-    document.getElementById(`btn-${regionId}`).classList.add('active');
+    const targetBtn = document.getElementById(`btn-${regionId}`);
+    if (targetBtn) targetBtn.classList.add('active');
 
-    // Immediately update current local time upon switching regions
     syncCurrentTime();
+    renderFooterCredits();
 
     fetchData(config.url);
 }
@@ -293,6 +380,8 @@ function fetchData(url) {
                     row._awsKey = matchAwsKey(row.AWS_Name);
                 });
                 currentCsvData = data;
+
+                filterAwsLayersByRegion(data);
 
                 syncCurrentTime();
                 
@@ -333,7 +422,7 @@ function updateAutomatedBulletin(visibleData) {
     else if (levelStr === '2') levelText = 'LEVEL 2 (Moderate Risk)';
     else if (levelStr === '1') levelText = 'LEVEL 1 (Low Risk / Advisory)';
 
-    alertTitleEl.innerText = `MATINDING BABALA: LANDSLIDE ALERT ${levelText}`;
+    alertTitleEl.innerText = `LANDSLIDE ALERT ${levelText}`;
     regionLabelEl.innerText = `${config.provinceName} | ${config.regionName}`;
 
     const hazardEl = document.getElementById('bulletin-hazard-text');
@@ -449,6 +538,15 @@ async function updateMap(data) {
 
     leafletLayerControl = L.control.layers(null, null, { collapsed: true, position: 'topright' }).addTo(map);
 
+    map.on('popupclose', () => {
+        if (highlightedLayer) {
+            if (typeof highlightedLayer._parentLayerGroup?.resetStyle === 'function') {
+                highlightedLayer._parentLayerGroup.resetStyle(highlightedLayer);
+            }
+            highlightedLayer = null;
+        }
+    });
+
     const warningMap = {};
     data.forEach(row => {
         if (row.AWS_Name) {
@@ -477,9 +575,11 @@ async function updateMap(data) {
             const coords = [parseFloat(item.Lat), parseFloat(item.Lng)];
             
             let marker;
-            if (item.Icon_URL) {
+            const activeIconUrl = currentCustomIconUrl || item.Icon_URL;
+
+            if (activeIconUrl) {
                 const customIcon = L.icon({
-                    iconUrl: item.Icon_URL,
+                    iconUrl: activeIconUrl,
                     iconSize: [36, 36],
                     iconAnchor: [18, 36],
                     popupAnchor: [0, -36]
@@ -560,7 +660,6 @@ function applyAwsFilters() {
     });
 
     const visibleTableData = updateTable(currentCsvData);
-    updateCommunicationActions(visibleTableData);
     updateAutomatedBulletin(visibleTableData);
 
     if (boundsToFocus.length > 0) {
@@ -633,34 +732,32 @@ document.addEventListener('click', () => {
     }
 });
 
-function updateCommunicationActions(data) {
-    const actionsContainer = document.getElementById('actions-container');
-    actionsContainer.innerHTML = '';
+function handleCustomIconUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
 
-    const activeLevels = new Set(data.map(d => String(d.Warning).trim()).filter(w => ['0','1','2','3'].includes(w)));
-    if (activeLevels.size === 0) activeLevels.add('0');
-
-    ['3', '2', '1', '0'].forEach(level => {
-        if (activeLevels.has(level)) {
-            const protocol = ACTION_PROTOCOLS[level];
-            const color = getWarningColor(level);
-            
-            const card = document.createElement('div');
-            card.className = `action-card ${protocol.badgeClass}`;
-            card.style.borderColor = color;
-
-            card.innerHTML = `
-                <div class="action-card-header" style="background-color: ${color}; color: ${level === '1' ? '#000' : '#fff'}">
-                    <span>${protocol.levelLabel}</span>
-                </div>
-                <div class="action-card-body">
-                    <h4>${protocol.actionTitle}</h4>
-                    <p>${protocol.details}</p>
-                </div>
-            `;
-            actionsContainer.appendChild(card);
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        currentCustomIconUrl = e.target.result;
+        if (currentCustomGeoJsonData) {
+            renderGeoJsonData(currentCustomGeoJsonData);
         }
-    });
+        if (currentCsvData.length > 0) {
+            updateMap(currentCsvData);
+        }
+        event.target.value = '';
+    };
+    reader.readAsDataURL(file);
+}
+
+function setPresetIcon(iconUrl) {
+    currentCustomIconUrl = iconUrl;
+    if (currentCustomGeoJsonData) {
+        renderGeoJsonData(currentCustomGeoJsonData);
+    }
+    if (currentCsvData.length > 0) {
+        updateMap(currentCsvData);
+    }
 }
 
 function renderGeoJsonData(geoData) {
@@ -673,6 +770,16 @@ function renderGeoJsonData(geoData) {
         pointToLayer: function (feature, latlng) {
             const level = feature.properties?.Warning || feature.properties?.warning || feature.properties?.LEVEL;
             const color = level !== undefined ? getWarningColor(level) : selectedColor;
+
+            if (currentCustomIconUrl) {
+                const customIcon = L.icon({
+                    iconUrl: currentCustomIconUrl,
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 32],
+                    popupAnchor: [0, -32]
+                });
+                return L.marker(latlng, { icon: customIcon });
+            }
 
             return L.circleMarker(latlng, {
                 radius: 7,
@@ -694,14 +801,41 @@ function renderGeoJsonData(geoData) {
             };
         },
         onEachFeature: function (feature, layer) {
-            if (feature.properties) {
-                let popupContent = '<div style="color:#000; font-family:sans-serif;">';
-                for (const [key, val] of Object.entries(feature.properties)) {
-                    popupContent += `<strong>${key}:</strong> ${val}<br>`;
+            const attrTableHtml = buildAttributeTableHTML(feature.properties);
+            const popupHtml = `
+                <div style="color:#0f172a; font-family:sans-serif; min-width: 200px; max-width: 280px;">
+                    <h4 style="margin: 0 0 6px 0; font-size: 0.85rem; color: #0284c7; border-bottom: 2px solid #38bdf8; padding-bottom: 4px;">
+                        GeoJSON Feature Attributes
+                    </h4>
+                    ${attrTableHtml}
+                </div>
+            `;
+            layer.bindPopup(popupHtml);
+
+            layer.on('click', function (e) {
+                L.DomEvent.stopPropagation(e);
+
+                if (highlightedLayer && highlightedLayer !== layer) {
+                    if (typeof highlightedLayer._parentLayerGroup?.resetStyle === 'function') {
+                        highlightedLayer._parentLayerGroup.resetStyle(highlightedLayer);
+                    }
                 }
-                popupContent += '</div>';
-                layer.bindPopup(popupContent);
-            }
+
+                highlightedLayer = layer;
+                layer._parentLayerGroup = geojsonLayer;
+
+                if (typeof layer.setStyle === 'function') {
+                    layer.setStyle({
+                        weight: 4,
+                        color: '#fbbf24',
+                        fillOpacity: 0.75
+                    });
+                }
+
+                if (typeof layer.bringToFront === 'function') {
+                    layer.bringToFront();
+                }
+            });
         }
     }).addTo(map);
 
@@ -779,8 +913,10 @@ function clearGeoJson() {
         map.removeLayer(geojsonLayer);
         geojsonLayer = null;
     }
+    highlightedLayer = null;
     currentCustomGeoJsonData = null;
-    document.getElementById('geojson-url').value = '';
+    const inputEl = document.getElementById('geojson-url');
+    if (inputEl) inputEl.value = '';
 }
 
 function handleError(msg) {
@@ -788,37 +924,10 @@ function handleError(msg) {
     if (errDiv) { errDiv.innerText = msg; errDiv.style.display = 'block'; }
 }
 
-function downloadAdvisory() {
-    const node = document.getElementById('advisory-container');
-    const loadingOverlay = document.getElementById('loading-overlay');
-    const loadingText = document.getElementById('loading-text');
-
-    loadingText.innerText = 'Generating Graphic Advisory Image...';
-    loadingOverlay.style.display = 'flex';
-
-    html2canvas(node, {
-        useCORS: true,
-        allowTaint: false,
-        scale: 2,
-        logging: false,
-        backgroundColor: '#0c1a26',
-        ignoreElements: (element) => element.id === 'loading-overlay'
-    }).then(canvas => {
-        const link = document.createElement('a');
-        link.download = `ligtas-advisory-${currentRegionId}-${Date.now()}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-        
-        loadingOverlay.style.display = 'none';
-    }).catch(error => {
-        console.error('Error generating image via html2canvas:', error);
-        alert('Could not generate image. Check browser console.');
-        loadingOverlay.style.display = 'none';
-    });
-}
-
 document.addEventListener('DOMContentLoaded', () => {
+    initTheme();
     syncCurrentTime();
+    renderFooterCredits();
 
     const dashboard = document.getElementById('dashboard-content');
     const leftPanel = document.getElementById('left-panel');
