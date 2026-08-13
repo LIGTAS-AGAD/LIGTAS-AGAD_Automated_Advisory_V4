@@ -39,9 +39,11 @@
     padding: 0;
 }
 
+/* Base Body & Layout Fits */
 body, html {
     width: 100%;
     height: 100%;
+    height: 100dvh; /* Dynamic height for mobile address bars */
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     background-color: var(--bg-dark);
     color: var(--text-main);
@@ -50,16 +52,18 @@ body, html {
 }
 
 /* App Shell */
-#app-container {
+#app-container, .app-container {
     display: flex;
     flex-direction: column;
-    height: 100vh;
-    width: 100vw;
+    height: 100%;
+    height: 100dvh;
+    width: 100%;
 }
 
 /* Header */
 .app-header {
     height: 56px;
+    flex-shrink: 0;
     background-color: var(--header-bg);
     border-bottom: 1px solid var(--border-color);
     display: flex;
@@ -140,14 +144,16 @@ body, html {
 }
 
 /* Dashboard Split Layout */
-.dashboard-content {
+.dashboard-content, #dashboard-content {
     flex: 1;
     display: flex;
+    width: 100%;
+    height: calc(100dvh - 56px);
     overflow: hidden;
     position: relative;
 }
 
-.left-panel {
+.left-panel, #left-panel {
     flex: 0 0 38%;
     min-width: 320px;
     max-width: 60%;
@@ -165,7 +171,7 @@ body, html {
 }
 
 /* Resizer Bar */
-.resizer {
+.resizer, #resizer {
     width: 6px;
     background-color: var(--bg-panel);
     border-left: 1px solid var(--border-color);
@@ -175,17 +181,18 @@ body, html {
     transition: background 0.2s;
 }
 
-.resizer:hover, .resizer.dragging {
+.resizer:hover, .resizer.dragging,
+#resizer:hover, #resizer.dragging {
     background-color: var(--accent-blue);
 }
 
-.right-panel {
+.right-panel, #right-panel, .map-container {
     flex: 1;
     height: 100%;
     position: relative;
 }
 
-.advisory-map {
+.advisory-map, #advisory-map {
     width: 100%;
     height: 100%;
     background-color: #1a3b42;
@@ -606,126 +613,6 @@ body, html {
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Base Layout Defaults */
-#dashboard-content {
-    display: flex;
-    width: 100%;
-    height: calc(100vh - 60px);
-    overflow: hidden;
-}
-
-#left-panel {
-    flex: 0 0 35%;
-    min-width: 280px;
-    overflow-y: auto;
-    padding: 16px;
-    box-sizing: border-box;
-}
-
-#resizer {
-    width: 6px;
-    background: var(--border-color);
-    cursor: col-resize;
-    transition: background 0.2s;
-    z-index: 10;
-}
-
-#resizer:hover, #resizer.dragging {
-    background: var(--accent-blue);
-}
-
-#right-panel, .map-container {
-    flex: 1;
-    position: relative;
-    height: 100%;
-}
-
-#advisory-map {
-    width: 100%;
-    height: 100%;
-}
-
-/* Mobile & Tablet Responsive Styles (<= 768px) */
-@media screen and (max-width: 768px) {
-    #dashboard-content {
-        flex-direction: column !important;
-        height: auto !important;
-        min-height: 100vh;
-        overflow-y: auto !important;
-    }
-
-    #resizer {
-        display: none !important;
-    }
-
-    #right-panel, .map-container {
-        width: 100% !important;
-        height: 50vh !important;
-        min-height: 320px;
-        order: 1;
-    }
-
-    #left-panel {
-        width: 100% !important;
-        flex: none !important;
-        max-height: none !important;
-        overflow-y: visible !important;
-        padding: 12px !important;
-        order: 2;
-    }
-
-    .nav-container, .region-nav-bar {
-        display: flex !important;
-        overflow-x: auto !important;
-        white-space: nowrap !important;
-        gap: 8px !important;
-        padding-bottom: 8px !important;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    .nav-btn {
-        flex: 0 0 auto !important;
-        font-size: 0.8rem !important;
-        padding: 8px 12px !important;
-    }
-
-    .table-container, .table-wrapper {
-        width: 100% !important;
-        overflow-x: auto !important;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    table {
-        min-width: 500px;
-        font-size: 0.8rem;
-    }
-
-    .bulletin-card {
-        padding: 12px !important;
-        margin-bottom: 12px !important;
-    }
-
-    .bulletin-card h2, .bulletin-card h3 {
-        font-size: 1rem !important;
-    }
-
-    .map-legend-card {
-        max-width: 200px !important;
-        padding: 8px 10px !important;
-        font-size: 0.7rem !important;
-    }
-
-    .map-legend-card .legend-item {
-        gap: 4px !important;
-        margin-bottom: 2px !important;
-    }
-
-    .map-legend-card img {
-        width: 13px !important;
-        height: 13px !important;
-    }
-}
-
 /* Background & Glassmorphism Theme Overrides */
 body {
     background: 
@@ -733,10 +620,10 @@ body {
         url("https://raw.githubusercontent.com/Gabzrock/LIGTASAGADEWSV8.1-fallbackedition/refs/heads/main/DJI_0709-scaled.jpg?auto=format&fit=crop&w=1920&q=80") no-repeat center center fixed;
     background-size: cover;
     color: var(--text-main);
-    min-height: 100vh;
+    min-height: 100dvh;
 }
 
-#left-panel {
+.left-panel, #left-panel {
     background: rgba(26, 59, 66, 0.70) !important;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
@@ -763,6 +650,7 @@ body {
     color: #1a3b42;
 }
 
+[data-theme="light"] .left-panel,
 [data-theme="light"] #left-panel {
     background: rgba(255, 255, 255, 0.80) !important;
 }
@@ -772,4 +660,108 @@ body {
 [data-theme="light"] .card {
     background: rgba(255, 255, 255, 0.85) !important;
     border: 1px solid rgba(38, 129, 113, 0.2) !important;
+}
+
+/* ========================================================= */
+/* Mobile & Tablet Responsive Styles (<= 768px)               */
+/* ========================================================= */
+@media screen and (max-width: 768px) {
+    body, html {
+        overflow-y: auto !important; /* Allow mobile page to scroll */
+        height: auto !important;
+        min-height: 100dvh;
+    }
+
+    #app-container, .app-container {
+        height: auto !important;
+        min-height: 100dvh;
+        overflow: visible !important;
+    }
+
+    .app-header {
+        flex-wrap: wrap;
+        height: auto;
+        padding: 10px 12px;
+        gap: 8px;
+    }
+
+    .dashboard-content, #dashboard-content {
+        flex-direction: column !important;
+        height: auto !important;
+        min-height: auto;
+        overflow-y: visible !important;
+    }
+
+    .resizer, #resizer {
+        display: none !important;
+    }
+
+    .right-panel, #right-panel, .map-container {
+        width: 100% !important;
+        height: 40vh !important;
+        min-height: 250px;
+        order: 1;
+    }
+
+    .left-panel, #left-panel {
+        width: 100% !important;
+        flex: none !important;
+        max-width: 100% !important;
+        max-height: none !important;
+        overflow-y: visible !important;
+        padding: 12px !important;
+        order: 2;
+    }
+
+    .nav-container, .region-nav-bar, .region-nav {
+        display: flex !important;
+        overflow-x: auto !important;
+        white-space: nowrap !important;
+        gap: 8px !important;
+        padding-bottom: 6px !important;
+        -webkit-overflow-scrolling: touch;
+        width: 100%;
+    }
+
+    .nav-btn {
+        flex: 0 0 auto !important;
+        font-size: 0.8rem !important;
+        padding: 8px 12px !important;
+    }
+
+    .table-container, .table-wrapper {
+        width: 100% !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    table, .advisory-table {
+        min-width: 450px;
+        font-size: 0.78rem;
+    }
+
+    .bulletin-card {
+        padding: 12px !important;
+        margin-bottom: 12px !important;
+    }
+
+    .bulletin-card h2, .bulletin-card h3 {
+        font-size: 0.95rem !important;
+    }
+
+    .map-legend-card {
+        max-width: 180px !important;
+        padding: 8px 10px !important;
+        font-size: 0.7rem !important;
+    }
+
+    .map-legend-card .legend-item {
+        gap: 4px !important;
+        margin-bottom: 2px !important;
+    }
+
+    .map-legend-card img {
+        width: 13px !important;
+        height: 13px !important;
+    }
 }
