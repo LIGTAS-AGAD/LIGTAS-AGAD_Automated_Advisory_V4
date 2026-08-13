@@ -730,7 +730,7 @@ body, html {
 body {
     background: 
         linear-gradient(rgba(26, 59, 66, 0.85), rgba(26, 59, 66, 0.92)),
-        url("https://images.unsplash.com/photo-1541807084-5c52b6b3adef?auto=format&fit=crop&w=1920&q=80") no-repeat center center fixed;
+        url("https://raw.githubusercontent.com/Gabzrock/LIGTASAGADEWSV8.1-fallbackedition/refs/heads/main/DJI_0709-scaled.jpg?auto=format&fit=crop&w=1920&q=80") no-repeat center center fixed;
     background-size: cover;
     color: var(--text-main);
     min-height: 100vh;
