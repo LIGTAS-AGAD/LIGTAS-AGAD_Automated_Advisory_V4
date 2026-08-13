@@ -71,12 +71,14 @@ const geoJsonCache = new Map();
 
 let map;
 let leafletLayerControl = null;
+let mapLegendControl = null; 
 let currentCsvData = [];
 let currentRegionId = 'car';
 let stationMarkersRegistry = []; 
 let awsLayersRegistry = {}; 
 let awsLayerState = {};    
 let geojsonLayer = null;
+let lsdbLayer = null; // Global reference for Landslide Database Layer
 let currentCustomGeoJsonData = null;
 let highlightedLayer = null;
 let currentCustomIconUrl = null;
@@ -92,6 +94,10 @@ function filterAwsLayersByRegion(data = []) {
 
         awsLayerState[cfg.key] = isRegionMatch || isCsvMatch;
     });
+
+    if (awsLayerState['LIGTAS-LSDB'] === undefined) {
+        awsLayerState['LIGTAS-LSDB'] = true;
+    }
 }
 
 function initTheme() {
@@ -170,7 +176,7 @@ function renderFooterCredits() {
                 <strong>Data Credits:</strong> DOST-PAGASA, DENR-MGB, DOST-Project LIGTAS-AGAD, DOST-Project SARAI
             </div>
             <div style="font-style:italic; opacity:0.8;">
-                &copy; LIGTAS Project. All rights reserved.
+                &copy; DOST LIGTAS-AGAD program. All rights reserved.
             </div>
         </div>
     `;
@@ -250,6 +256,49 @@ function buildAttributeTableHTML(properties) {
             </table>
         </div>
     `;
+}
+
+async function createGeoJSONLayer(key, name, url, styleOptions = {}, onEachFeatureCustom = null) {
+    try {
+        let geoData;
+        if (geoJsonCache.has(url)) {
+            geoData = geoJsonCache.get(url);
+        } else {
+            const response = await fetchWithTimeout(url, { timeout: 8000 });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            geoData = await response.json();
+            geoJsonCache.set(url, geoData);
+        }
+
+        const layer = L.geoJSON(geoData, {
+            pane: styleOptions.pane || 'overlayPane',
+            style: styleOptions,
+            pointToLayer: (feature, latlng) => {
+                return L.circleMarker(latlng, styleOptions);
+            },
+            onEachFeature: onEachFeatureCustom || ((feature, l) => {
+                const attrHtml = buildAttributeTableHTML(feature.properties);
+                l.bindPopup(`
+                    <div style="color:#000; font-family:sans-serif; max-width:280px;">
+                        <h4 style="margin:0 0 4px 0; color:#0284c7; font-size:0.85rem;">${name}</h4>
+                        ${attrHtml}
+                    </div>
+                `);
+            })
+        });
+
+        if (map) {
+            layer.addTo(map);
+            if (leafletLayerControl) {
+                leafletLayerControl.addOverlay(layer, name);
+            }
+        }
+
+        return layer;
+    } catch (err) {
+        console.warn(`Failed to create GeoJSON layer [${name}]:`, err.message);
+        return null;
+    }
 }
 
 async function initSynchronizedAWSLayer(awsKey, geoJsonUrl, displayName, warningMap) {
@@ -345,6 +394,79 @@ async function initSynchronizedAWSLayer(awsKey, geoJsonUrl, displayName, warning
     }
 }
 
+function updateMapLegendTitle(newTitle) {
+    const titleContainer = document.getElementById('map-legend-title');
+    if (titleContainer) {
+        titleContainer.innerText = 'Map Legend';
+    }
+}
+
+function renderMapLegend(targetMap) {
+    if (mapLegendControl) {
+        targetMap.removeControl(mapLegendControl);
+    }
+
+    mapLegendControl = L.control({ position: 'bottomright' });
+
+    mapLegendControl.onAdd = function () {
+        const div = L.DomUtil.create('div', 'map-legend-card');
+        
+        div.style.backgroundColor = 'rgba(15, 23, 42, 0.82)';
+        div.style.backdropFilter = 'blur(8px)';
+        div.style.webkitBackdropFilter = 'blur(8px)';
+        div.style.border = '1px solid rgba(255, 255, 255, 0.15)';
+        div.style.borderRadius = '8px';
+        div.style.padding = '10px 12px';
+        div.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.3)';
+
+        div.innerHTML = `
+            <div class="legend-header">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <span id="map-legend-title">Map Legend</span>
+            </div>
+            <div class="legend-scale">
+                <div class="legend-item">
+                    <span class="legend-color" style="background:#dc2626;"></span>
+                    <span>Level 3 (High Risk)</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background:#fd7e14;"></span>
+                    <span>Level 2 (Moderate)</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background:#facc15;"></span>
+                    <span>Level 1 (Low Risk)</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background:#9ca3af;"></span>
+                    <span>N/A / No Data</span>
+                </div>
+                <div class="legend-item" style="margin-top: 4px; border-top: 1px dashed var(--border-color, #cbd5e1); padding-top: 4px; display: flex; align-items: center; gap: 6px;">
+                    <img src="https://ligtas.uplb.edu.ph/wp-content/uploads/2022/04/3-e1659971771933.png" alt="LIGTAS-AGAD AWS" style="width: 16px; height: 16px; object-fit: contain;">
+                    <span>LIGTAS-AGAD AWS</span>
+                </div>
+                                <div class="legend-item" style="margin-top: 4px; border-top: 1px dashed var(--border-color, #cbd5e1); padding-top: 4px; display: flex; align-items: center; gap: 6px;">
+                    <img src="https://raw.githubusercontent.com/Gabzrock/LIGTASkanaba/refs/heads/main/LOGO2.png" alt="LIGTAS-AGAD AWS" style="width: 16px; height: 16px; object-fit: contain;">
+                    <span>PAGASA AWS</span>
+                </div>
+            <div class="legend-scale">
+                <div class="legend-item">
+                    <span class="legend-color" style="background:#C4A484;"></span>
+                    <span>DPWH Roads</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background:#f97316; border-radius:50%;"></span>
+                    <span>Recorded Landslide Events</span>
+                </div>
+            </div>
+        `;
+        L.DomEvent.disableClickPropagation(div);
+        return div;
+    };
+
+    mapLegendControl.addTo(targetMap);
+}
+
 function switchRegion(regionId) {
     currentRegionId = regionId;
     clearGeoJson();
@@ -417,7 +539,7 @@ function updateAutomatedBulletin(visibleData) {
     const alertTitleEl = document.getElementById('bulletin-alert-title');
     const regionLabelEl = document.getElementById('bulletin-region-label');
     
-    let levelText = 'LEVEL 0 (Normal)';
+    let levelText = ': NO ACTIVE WARNINGS (Normal)';
     if (levelStr === '3') levelText = 'LEVEL 3 (High Risk/Critical)';
     else if (levelStr === '2') levelText = 'LEVEL 2 (Moderate Risk)';
     else if (levelStr === '1') levelText = 'LEVEL 1 (Low Risk / Advisory)';
@@ -531,12 +653,53 @@ async function updateMap(data) {
     if (map) map.remove();
     map = L.map('advisory-map').setView([12.8797, 121.7740], 6);
 
+    // Create lower pane for Regional Boundaries so it stays strictly below AWS layers
+    if (!map.getPane('boundaryPane')) {
+        map.createPane('boundaryPane');
+        map.getPane('boundaryPane').style.zIndex = 350;
+    }
+
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
         attribution: 'Tiles &copy; Esri',
         crossOrigin: true
     }).addTo(map);
 
     leafletLayerControl = L.control.layers(null, null, { collapsed: true, position: 'topright' }).addTo(map);
+
+    const activeRegionConfig = CONFIG[currentRegionId];
+    const initialLegendTitle = activeRegionConfig ? `${activeRegionConfig.regionName} Advisories` : 'Advisory Levels';
+    renderMapLegend(map, initialLegendTitle);
+
+    // 1. REGIONAL BOUNDARIES LAYER (Below AWS Layers, white border, transparent fill)
+    createGeoJSONLayer(
+        'LIGTAS-BOUNDARIES',
+        'Regional Boundaries',
+        'https://raw.githubusercontent.com/Gabzrock/LIGTASAGADsites/refs/heads/main/LIGTAS-AGAD_sites2.geojson',
+        {
+            color: 'white',
+            fillColor: 'transparent',
+            fillOpacity: 0,
+            weight: 1.5,
+            pane: 'boundaryPane'
+        },
+        null
+    );
+
+    // 2. RECORDED LANDSLIDES POINTS LAYER
+    lsdbLayer = await createGeoJSONLayer(
+        'LIGTAS-LSDB',
+        'Recorded Landslides',
+        'https://raw.githubusercontent.com/Gabzrock/LIGTAS-AGAD/refs/heads/main/LandslideDB-web.geojson',
+        {
+            color: 'orange',
+            fillColor: 'orange',
+            fillOpacity: 0.8,
+            radius: 6,
+            weight: 1,
+            pane: 'markerPane'
+        },
+        null
+    );
 
     map.on('popupclose', () => {
         if (highlightedLayer) {
@@ -609,16 +772,27 @@ async function updateMap(data) {
     }
 
     map.on('overlayadd', (e) => {
+        if (lsdbLayer && e.layer === lsdbLayer) {
+            awsLayerState['LIGTAS-LSDB'] = true;
+            syncAwsControlUI();
+            return;
+        }
         for (const [key, item] of Object.entries(awsLayersRegistry)) {
             if (item.layer === e.layer) {
                 awsLayerState[key] = true;
                 applyAwsFilters();
+                updateMapLegendTitle(`${item.name} Layer`);
                 break;
             }
         }
     });
 
     map.on('overlayremove', (e) => {
+        if (lsdbLayer && e.layer === lsdbLayer) {
+            awsLayerState['LIGTAS-LSDB'] = false;
+            syncAwsControlUI();
+            return;
+        }
         for (const [key, item] of Object.entries(awsLayersRegistry)) {
             if (item.layer === e.layer) {
                 awsLayerState[key] = false;
@@ -637,6 +811,15 @@ function applyAwsFilters() {
     if (!map) return;
 
     const boundsToFocus = [];
+
+    // Toggle Landslide Database Layer
+    if (lsdbLayer) {
+        if (awsLayerState['LIGTAS-LSDB'] !== false) {
+            if (!map.hasLayer(lsdbLayer)) map.addLayer(lsdbLayer);
+        } else {
+            if (map.hasLayer(lsdbLayer)) map.removeLayer(lsdbLayer);
+        }
+    }
 
     for (const [key, item] of Object.entries(awsLayersRegistry)) {
         if (awsLayerState[key] !== false) {
@@ -677,6 +860,7 @@ function buildAwsControlUI() {
     listContainer.innerHTML = '';
     let activeCount = 0;
 
+    // Render AWS Station items
     AWS_CONFIG_LIST.forEach(item => {
         const isChecked = awsLayerState[item.key] !== false;
         if (isChecked) activeCount++;
@@ -690,6 +874,23 @@ function buildAwsControlUI() {
         listContainer.appendChild(row);
     });
 
+    // Render Section Divider & Recorded Landslides Toggle Row
+    const divider = document.createElement('hr');
+    divider.style.cssText = 'margin: 8px 0; border: 0; border-top: 1px dashed var(--border-color, rgba(255, 255, 255, 0.15));';
+    listContainer.appendChild(divider);
+
+    const isLsdbChecked = awsLayerState['LIGTAS-LSDB'] !== false;
+    const lsdbRow = document.createElement('label');
+    lsdbRow.className = 'aws-item-row';
+    lsdbRow.innerHTML = `
+        <input type="checkbox" data-aws-key="LIGTAS-LSDB" ${isLsdbChecked ? 'checked' : ''} onchange="toggleAwsLayer('LIGTAS-LSDB', this.checked)" />
+        <span style="display: flex; align-items: center; gap: 6px; font-weight: 600;">
+            <span style="width: 10px; height: 10px; border-radius: 50%; background: #f97316; display: inline-block;"></span>
+            Recorded Landslides
+        </span>
+    `;
+    listContainer.appendChild(lsdbRow);
+
     document.getElementById('aws-active-count').innerText = `${activeCount}/${AWS_CONFIG_LIST.length}`;
 }
 
@@ -701,6 +902,10 @@ function syncAwsControlUI() {
         const cb = document.querySelector(`input[data-aws-key="${item.key}"]`);
         if (cb) cb.checked = isChecked;
     });
+
+    const lsdbCb = document.querySelector(`input[data-aws-key="LIGTAS-LSDB"]`);
+    if (lsdbCb) lsdbCb.checked = awsLayerState['LIGTAS-LSDB'] !== false;
+
     document.getElementById('aws-active-count').innerText = `${activeCount}/${AWS_CONFIG_LIST.length}`;
 }
 
@@ -713,6 +918,7 @@ function selectAllAwsLayers(enableAll) {
     AWS_CONFIG_LIST.forEach(item => {
         awsLayerState[item.key] = enableAll;
     });
+    awsLayerState['LIGTAS-LSDB'] = enableAll;
     applyAwsFilters();
 }
 
@@ -760,11 +966,13 @@ function setPresetIcon(iconUrl) {
     }
 }
 
-function renderGeoJsonData(geoData) {
+function renderGeoJsonData(geoData, customLayerName = 'Custom GeoJSON Overlay') {
     clearGeoJson();
     currentCustomGeoJsonData = geoData;
 
     const selectedColor = document.getElementById('geojson-color')?.value || '#3b82f6';
+
+    updateMapLegendTitle(customLayerName);
 
     geojsonLayer = L.geoJSON(geoData, {
         pointToLayer: function (feature, latlng) {
@@ -854,7 +1062,8 @@ function loadGeoJsonUrl() {
             return response.json();
         })
         .then(geoData => {
-            renderGeoJsonData(geoData);
+            const fileName = url.split('/').pop().split('?')[0] || 'Remote GeoJSON';
+            renderGeoJsonData(geoData, fileName);
         })
         .catch(err => {
             console.error(err);
@@ -870,7 +1079,7 @@ function handleGeoJsonFileUpload(event) {
     reader.onload = function(e) {
         try {
             const geoData = JSON.parse(e.target.result);
-            renderGeoJsonData(geoData);
+            renderGeoJsonData(geoData, file.name);
             event.target.value = '';
         } catch (err) {
             alert('Invalid GeoJSON file format.');
@@ -917,6 +1126,8 @@ function clearGeoJson() {
     currentCustomGeoJsonData = null;
     const inputEl = document.getElementById('geojson-url');
     if (inputEl) inputEl.value = '';
+
+    updateMapLegendTitle('LIGTAS-AGAD Legend');
 }
 
 function handleError(msg) {
@@ -938,6 +1149,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let isDragging = false;
 
     const startDrag = () => {
+        if (window.innerWidth <= 768) return;
+        
         isDragging = true;
         resizer.classList.add('dragging');
         document.body.style.cursor = 'col-resize';
@@ -945,7 +1158,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const doDrag = (e) => {
-        if (!isDragging) return;
+        if (!isDragging || window.innerWidth <= 768) return;
 
         const clientX = e.clientX || (e.touches && e.touches[0].clientX);
         if (!clientX) return;
@@ -984,9 +1197,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('mousemove', doDrag);
     document.addEventListener('mouseup', stopDrag);
 
-    resizer.addEventListener('touchstart', startDrag, { passive: true });
-    document.addEventListener('touchmove', doDrag, { passive: true });
-    document.addEventListener('touchend', stopDrag);
+    window.addEventListener('resize', () => {
+        if (window.innerWidth <= 768 && leftPanel.style.flex) {
+            leftPanel.style.flex = ''; 
+        }
+        if (map) {
+            map.invalidateSize();
+        }
+    });
 });
 
 window.onload = () => switchRegion('car');
