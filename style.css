@@ -1,3 +1,6 @@
+/* ========================================================= */
+/* CSS Custom Properties & Themes                            */
+/* ========================================================= */
 :root {
     --bg-dark: #1a3b42;
     --bg-panel: #1a3b42;
@@ -33,17 +36,19 @@
     --brand-color: #1a3b42;
 }
 
+/* ========================================================= */
+/* Global Resets & Base Styles                               */
+/* ========================================================= */
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
 }
 
-/* Base Body & Layout Fits */
 body, html {
     width: 100%;
     height: 100%;
-    height: 100dvh; /* Dynamic height for mobile address bars */
+    height: 100dvh; /* Dynamic viewport height to account for mobile browser UI */
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     background-color: var(--bg-dark);
     color: var(--text-main);
@@ -51,7 +56,27 @@ body, html {
     transition: background-color 0.25s ease, color 0.25s ease;
 }
 
-/* App Shell */
+/* Base Body Background Image */
+body {
+    background: 
+        linear-gradient(rgba(26, 59, 66, 0.85), rgba(26, 59, 66, 0.92)),
+        url("https://raw.githubusercontent.com/Gabzrock/LIGTASAGADEWSV8.1-fallbackedition/refs/heads/main/DJI_0709-scaled.jpg?auto=format&fit=crop&w=1920&q=80") no-repeat center center fixed;
+    background-size: cover;
+    min-height: 100dvh;
+}
+
+/* Light Theme Background Override */
+[data-theme="light"] body {
+    background: 
+        linear-gradient(rgba(205, 242, 243, 0.88), rgba(205, 242, 243, 0.95)),
+        url("https://raw.githubusercontent.com/Gabzrock/LIGTASAGADEWSV8.1-fallbackedition/refs/heads/main/DJI_0709-scaled.jpg?auto=format&fit=crop&w=1920&q=80") no-repeat center center fixed;
+    background-size: cover;
+    color: #1a3b42;
+}
+
+/* ========================================================= */
+/* App Layout Container & Header                             */
+/* ========================================================= */
 #app-container, .app-container {
     display: flex;
     flex-direction: column;
@@ -60,7 +85,6 @@ body, html {
     width: 100%;
 }
 
-/* Header */
 .app-header {
     height: 56px;
     flex-shrink: 0;
@@ -143,7 +167,9 @@ body, html {
     width: auto;
 }
 
-/* Dashboard Split Layout */
+/* ========================================================= */
+/* Desktop Dashboard Split Layout                            */
+/* ========================================================= */
 .dashboard-content, #dashboard-content {
     flex: 1;
     display: flex;
@@ -157,20 +183,26 @@ body, html {
     flex: 0 0 38%;
     min-width: 320px;
     max-width: 60%;
-    background-color: var(--bg-dark);
+    background: rgba(26, 59, 66, 0.70) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border-right: 1px solid var(--border-color);
     overflow-y: auto;
+    padding: 14px;
     transition: background-color 0.25s ease, border-color 0.25s ease;
 }
 
+[data-theme="light"] .left-panel,
+[data-theme="light"] #left-panel {
+    background: rgba(255, 255, 255, 0.80) !important;
+}
+
 .panel-inner {
-    padding: 14px;
     display: flex;
     flex-direction: column;
     gap: 12px;
 }
 
-/* Resizer Bar */
 .resizer, #resizer {
     width: 6px;
     background-color: var(--bg-panel);
@@ -198,7 +230,35 @@ body, html {
     background-color: #1a3b42;
 }
 
-/* Banners and Titles */
+/* ========================================================= */
+/* Components & Glassmorphism Styling                        */
+/* ========================================================= */
+.bulletin-card, 
+.table-container, 
+.card, 
+.control-card, 
+.info-card, 
+.table-card {
+    background: rgba(64, 77, 86, 0.75) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--border-color) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+    border-radius: 6px;
+    padding: 12px;
+    transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+
+[data-theme="light"] .bulletin-card,
+[data-theme="light"] .table-container,
+[data-theme="light"] .card,
+[data-theme="light"] .control-card,
+[data-theme="light"] .info-card,
+[data-theme="light"] .table-card {
+    background: rgba(255, 255, 255, 0.85) !important;
+    border: 1px solid rgba(38, 129, 113, 0.2) !important;
+}
+
 .region-title-banner {
     background-color: var(--bg-panel);
     border: 1px solid var(--border-color);
@@ -219,15 +279,6 @@ body, html {
     padding: 8px 12px;
     border-radius: 4px;
     font-size: 0.8rem;
-}
-
-/* Generic Control Cards */
-.control-card, .info-card, .table-card {
-    background-color: var(--bg-panel);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    padding: 12px;
-    transition: background-color 0.25s ease, border-color 0.25s ease;
 }
 
 .card-header {
@@ -377,7 +428,7 @@ body, html {
     cursor: pointer;
 }
 
-/* Info Cards */
+/* Info Cards & Bulletins */
 .info-row {
     display: flex;
     justify-content: space-between;
@@ -389,19 +440,10 @@ body, html {
 .text-muted { color: var(--text-muted); }
 .badge { background-color: var(--bg-card); padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; color: var(--text-main); }
 
-/* Bulletin Styling */
-.bulletin-card {
-    border-radius: 6px;
-    padding: 14px;
-    border: 1px solid var(--border-color);
-    background-color: var(--bg-panel);
-    transition: background-color 0.25s ease, border-color 0.25s ease;
-}
-
-.bulletin-card.level-0 { border-left: 5px solid var(--success-green); }
-.bulletin-card.level-1 { border-left: 5px solid var(--warning-yellow); }
-.bulletin-card.level-2 { border-left: 5px solid var(--warning-orange); }
-.bulletin-card.level-3 { border-left: 5px solid var(--danger-red); }
+.bulletin-card.level-0 { border-left: 5px solid var(--success-green) !important; }
+.bulletin-card.level-1 { border-left: 5px solid var(--warning-yellow) !important; }
+.bulletin-card.level-2 { border-left: 5px solid var(--warning-orange) !important; }
+.bulletin-card.level-3 { border-left: 5px solid var(--danger-red) !important; }
 
 .bulletin-header h2 {
     font-size: 0.9rem;
@@ -466,7 +508,7 @@ body, html {
 .inline-level-badge.level-2 { background-color: var(--warning-orange); color: #ffffff; }
 .inline-level-badge.level-3 { background-color: var(--danger-red); color: #ffffff; }
 
-/* Table Styling */
+/* Tables */
 .table-wrapper {
     max-height: 220px;
     overflow-y: auto;
@@ -522,7 +564,7 @@ body, html {
     transition: background-color 0.25s ease, border-color 0.25s ease;
 }
 
-/* Map Label Styles */
+/* Map Label Styles & Legends */
 .aws-label {
     background: rgba(26, 59, 66, 0.9) !important;
     border: 1px solid var(--border-color) !important;
@@ -534,38 +576,6 @@ body, html {
     box-shadow: 0 2px 4px rgba(0,0,0,0.4) !important;
 }
 
-/* Loading Overlay */
-.loading-overlay {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background-color: rgba(26, 59, 66, 0.9);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-}
-
-.spinner {
-    width: 40px;
-    height: 40px;
-    border: 4px solid var(--border-color);
-    border-top-color: var(--accent-blue);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-.loading-text {
-    margin-top: 12px;
-    font-size: 0.85rem;
-    color: var(--text-main);
-}
-
-/* Map Legend Panel */
 .map-legend-card {
     background-color: var(--bg-panel);
     border: 1px solid var(--border-color);
@@ -613,61 +623,44 @@ body, html {
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Background & Glassmorphism Theme Overrides */
-body {
-    background: 
-        linear-gradient(rgba(26, 59, 66, 0.85), rgba(26, 59, 66, 0.92)),
-        url("https://raw.githubusercontent.com/Gabzrock/LIGTASAGADEWSV8.1-fallbackedition/refs/heads/main/DJI_0709-scaled.jpg?auto=format&fit=crop&w=1920&q=80") no-repeat center center fixed;
-    background-size: cover;
+/* Loading Overlay */
+.loading-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(26, 59, 66, 0.9);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--border-color);
+    border-top-color: var(--accent-blue);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loading-text {
+    margin-top: 12px;
+    font-size: 0.85rem;
     color: var(--text-main);
-    min-height: 100dvh;
-}
-
-.left-panel, #left-panel {
-    background: rgba(26, 59, 66, 0.70) !important;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-right: 1px solid var(--border-color);
-}
-
-.bulletin-card, 
-.table-container, 
-.card, 
-.nav-btn {
-    background: rgba(64, 77, 86, 0.75) !important;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid var(--border-color) !important;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
-}
-
-/* Light Theme Overrides */
-[data-theme="light"] body {
-    background: 
-        linear-gradient(rgba(205, 242, 243, 0.88), rgba(205, 242, 243, 0.95)),
-        url("https://raw.githubusercontent.com/Gabzrock/LIGTASAGADEWSV8.1-fallbackedition/refs/heads/main/DJI_0709-scaled.jpg?auto=format&fit=crop&w=1920&q=80") no-repeat center center fixed;
-    background-size: cover;
-    color: #1a3b42;
-}
-
-[data-theme="light"] .left-panel,
-[data-theme="light"] #left-panel {
-    background: rgba(255, 255, 255, 0.80) !important;
-}
-
-[data-theme="light"] .bulletin-card,
-[data-theme="light"] .table-container,
-[data-theme="light"] .card {
-    background: rgba(255, 255, 255, 0.85) !important;
-    border: 1px solid rgba(38, 129, 113, 0.2) !important;
 }
 
 /* ========================================================= */
-/* Mobile & Tablet Responsive Styles (<= 768px)               */
+/* Mobile & Small Device Fixes (<= 768px)                     */
 /* ========================================================= */
 @media screen and (max-width: 768px) {
+    /* Allow mobile page to scroll top-to-bottom */
     body, html {
-        overflow-y: auto !important; /* Allow mobile page to scroll */
+        overflow-y: auto !important;
         height: auto !important;
         min-height: 100dvh;
     }
@@ -685,6 +678,7 @@ body {
         gap: 8px;
     }
 
+    /* Stack dashboard vertically */
     .dashboard-content, #dashboard-content {
         flex-direction: column !important;
         height: auto !important;
@@ -692,17 +686,28 @@ body {
         overflow-y: visible !important;
     }
 
+    /* Hide desktop panel resizer */
     .resizer, #resizer {
         display: none !important;
     }
 
-    .right-panel, #right-panel, .map-container {
+    /* Mandatory Fix: Explicit map container sizing for mobile screens */
+    .right-panel, 
+    #right-panel, 
+    .map-container,
+    .advisory-map, 
+    #advisory-map {
         width: 100% !important;
-        height: 40vh !important;
-        min-height: 250px;
-        order: 1;
+        height: 350px !important; /* Prevents map canvas from collapsing to 0px */
+        min-height: 300px !important;
+        flex-shrink: 0 !important; /* Keeps map from shrinking */
+        order: 1 !important; /* Places map above text panels on mobile */
+        position: relative !important;
+        display: block !important;
+        z-index: 1;
     }
 
+    /* Panel text controls slide beneath map */
     .left-panel, #left-panel {
         width: 100% !important;
         flex: none !important;
@@ -710,9 +715,10 @@ body {
         max-height: none !important;
         overflow-y: visible !important;
         padding: 12px !important;
-        order: 2;
+        order: 2 !important;
     }
 
+    /* Horizontal scroll for region navigation buttons */
     .nav-container, .region-nav-bar, .region-nav {
         display: flex !important;
         overflow-x: auto !important;
@@ -729,6 +735,7 @@ body {
         padding: 8px 12px !important;
     }
 
+    /* Horizontal scroll for data tables */
     .table-container, .table-wrapper {
         width: 100% !important;
         overflow-x: auto !important;
