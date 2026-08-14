@@ -78,10 +78,93 @@ let stationMarkersRegistry = [];
 let awsLayersRegistry = {}; 
 let awsLayerState = {};    
 let geojsonLayer = null;
-let lsdbLayer = null; // Global reference for Landslide Database Layer
+let lsdbLayer = null;
 let currentCustomGeoJsonData = null;
 let highlightedLayer = null;
 let currentCustomIconUrl = null;
+
+/* ========================================================= */
+/* AWS Hierarchy Algorithm & Overlap Offset Logic             */
+/* ========================================================= */
+
+/**
+ * Priority score based on warning level (Higher = Higher Priority)
+ */
+function getWarningLevelPriority(val) {
+    const level = String(val).trim();
+    switch (level) {
+        case '3': return 4000;
+        case '2': return 3000;
+        case '1': return 2000;
+        case '0': return 1000;
+        default:  return 0; // N/A or default
+    }
+}
+
+/**
+ * Sorts data array according to warning level severity (Level 3 > Level 2 > Level 1 > Level 0 > N/A)
+ */
+function sortDataByWarningHierarchy(data) {
+    if (!Array.isArray(data)) return [];
+    return [...data].sort((a, b) => {
+        const prioA = getWarningLevelPriority(a.Warning);
+        const prioB = getWarningLevelPriority(b.Warning);
+        if (prioB !== prioA) {
+            return prioB - prioA;
+        }
+        // Secondary sort: Cumulative rainfall value descending
+        const cumA = parseFloat(a.Cumulative) || 0;
+        const cumB = parseFloat(b.Cumulative) || 0;
+        return cumB - cumA;
+    });
+}
+
+/**
+ * Anti-overlap jittering algorithm.
+ * Identifies markers sharing spatial coordinates and applies micro-offsets so lower warning level
+ * markers do not obscure highest priority stations. High warning stations stay centered.
+ */
+function applyOverlapOffset(data) {
+    const coordGroup = new Map();
+
+    data.forEach(item => {
+        if (item.Lat && item.Lng) {
+            // Group coordinates rounded to 4 decimal places (~10m precision threshold)
+            const key = `${parseFloat(item.Lat).toFixed(4)},${parseFloat(item.Lng).toFixed(4)}`;
+            if (!coordGroup.has(key)) {
+                coordGroup.set(key, []);
+            }
+            coordGroup.get(key).push(item);
+        }
+    });
+
+    coordGroup.forEach(group => {
+        if (group.length > 1) {
+            // Sort ascending by warning priority inside the cluster group so higher warning stays centered & rendered on top
+            group.sort((a, b) => getWarningLevelPriority(a.Warning) - getWarningLevelPriority(b.Warning));
+
+            const total = group.length;
+            group.forEach((item, index) => {
+                if (index < total - 1) {
+                    // Apply spiral offset for overlapping lower-priority markers
+                    const angle = (index * 2 * Math.PI) / (total - 1);
+                    const radius = 0.00025; // ~25 meters spatial offset
+                    item._renderLat = parseFloat(item.Lat) + Math.sin(angle) * radius;
+                    item._renderLng = parseFloat(item.Lng) + Math.cos(angle) * radius;
+                } else {
+                    // Keep top-priority warning station at exact geographic coordinate center
+                    item._renderLat = parseFloat(item.Lat);
+                    item._renderLng = parseFloat(item.Lng);
+                }
+            });
+        } else if (group.length === 1) {
+            group[0]._renderLat = parseFloat(group[0].Lat);
+            group[0]._renderLng = parseFloat(group[0].Lng);
+        }
+    });
+
+    return data;
+}
 
 function filterAwsLayersByRegion(data = []) {
     const activeKeysInCsv = new Set(
@@ -304,6 +387,7 @@ async function createGeoJSONLayer(key, name, url, styleOptions = {}, onEachFeatu
 async function initSynchronizedAWSLayer(awsKey, geoJsonUrl, displayName, warningMap) {
     const warningLevel = findWarningLevel(awsKey, warningMap);
     const color = getWarningColor(warningLevel);
+    const zIndex = getWarningLevelPriority(warningLevel);
 
     try {
         let geoData;
@@ -333,7 +417,7 @@ async function initSynchronizedAWSLayer(awsKey, geoJsonUrl, displayName, warning
                         iconAnchor: [16, 32],
                         popupAnchor: [0, -32]
                     });
-                    return L.marker(latlng, { icon: icon });
+                    return L.marker(latlng, { icon: icon, zIndexOffset: zIndex });
                 }
                 return L.circleMarker(latlng, {
                     radius: 7,
@@ -341,7 +425,8 @@ async function initSynchronizedAWSLayer(awsKey, geoJsonUrl, displayName, warning
                     color: '#ffffff',
                     weight: 1.5,
                     opacity: 0.9,
-                    fillOpacity: 0.85
+                    fillOpacity: 0.85,
+                    zIndexOffset: zIndex
                 });
             },
             onEachFeature: (feature, l) => {
@@ -387,7 +472,16 @@ async function initSynchronizedAWSLayer(awsKey, geoJsonUrl, displayName, warning
             }
         });
 
-        return { key: awsKey, layer: currentLayerGroup, bounds: currentLayerGroup.getBounds(), name: displayName };
+        // Elevate critical warning layers to front
+        if (['3', '2'].includes(warningLevel)) {
+            setTimeout(() => {
+                if (currentLayerGroup && typeof currentLayerGroup.bringToFront === 'function') {
+                    currentLayerGroup.bringToFront();
+                }
+            }, 100);
+        }
+
+        return { key: awsKey, layer: currentLayerGroup, bounds: currentLayerGroup.getBounds(), name: displayName, warningLevel: warningLevel };
     } catch (err) {
         console.warn(`GeoJSON bypass for ${displayName}:`, err.message);
         return null;
@@ -445,11 +539,12 @@ function renderMapLegend(targetMap) {
                     <img src="https://ligtas.uplb.edu.ph/wp-content/uploads/2022/04/3-e1659971771933.png" alt="LIGTAS-AGAD AWS" style="width: 16px; height: 16px; object-fit: contain;">
                     <span>LIGTAS-AGAD AWS</span>
                 </div>
-                                <div class="legend-item" style="margin-top: 4px; border-top: 1px dashed var(--border-color, #cbd5e1); padding-top: 4px; display: flex; align-items: center; gap: 6px;">
+                <div class="legend-item" style="margin-top: 4px; border-top: 1px dashed var(--border-color, #cbd5e1); padding-top: 4px; display: flex; align-items: center; gap: 6px;">
                     <img src="https://raw.githubusercontent.com/Gabzrock/LIGTASkanaba/refs/heads/main/LOGO2.png" alt="LIGTAS-AGAD AWS" style="width: 16px; height: 16px; object-fit: contain;">
                     <span>PAGASA AWS</span>
                 </div>
-            <div class="legend-scale">
+            </div>
+            <div class="legend-scale" style="margin-top:4px;">
                 <div class="legend-item">
                     <span class="legend-color" style="background:#C4A484;"></span>
                     <span>DPWH Roads</span>
@@ -496,18 +591,20 @@ function fetchData(url) {
         download: true,
         header: true,
         complete: async function(results) {
-            const data = results.data.filter(row => row.AWS_Name);
-            if (data.length > 0) {
-                data.forEach(row => {
+            const rawData = results.data.filter(row => row.AWS_Name);
+            if (rawData.length > 0) {
+                rawData.forEach(row => {
                     row._awsKey = matchAwsKey(row.AWS_Name);
                 });
-                currentCsvData = data;
 
-                filterAwsLayersByRegion(data);
+                // Apply hierarchy sorting to dataset
+                currentCsvData = sortDataByWarningHierarchy(rawData);
+
+                filterAwsLayersByRegion(currentCsvData);
 
                 syncCurrentTime();
                 
-                await updateMap(data);
+                await updateMap(currentCsvData);
                 applyAwsFilters();
             } else {
                 handleError("No data found in dataset.");
@@ -610,8 +707,11 @@ function updateTable(data) {
     tbody.innerHTML = '';
 
     const visibleData = data.filter(row => !row._awsKey || awsLayerState[row._awsKey] !== false);
+    
+    // Sort table rows by warning hierarchy (High Risk on top)
+    const sortedVisibleData = sortDataByWarningHierarchy(visibleData);
 
-    visibleData.forEach(row => {
+    sortedVisibleData.forEach(row => {
         const tr = document.createElement('tr');
         const color = getWarningColor(row.Warning);
         tr.innerHTML = `
@@ -623,7 +723,7 @@ function updateTable(data) {
         tbody.appendChild(tr);
     });
 
-    return visibleData;
+    return sortedVisibleData;
 }
 
 function setAwsMarkerLabelStyle(marker) {
@@ -653,7 +753,6 @@ async function updateMap(data) {
     if (map) map.remove();
     map = L.map('advisory-map').setView([12.8797, 121.7740], 6);
 
-    // Create lower pane for Regional Boundaries so it stays strictly below AWS layers
     if (!map.getPane('boundaryPane')) {
         map.createPane('boundaryPane');
         map.getPane('boundaryPane').style.zIndex = 350;
@@ -670,7 +769,6 @@ async function updateMap(data) {
     const initialLegendTitle = activeRegionConfig ? `${activeRegionConfig.regionName} Advisories` : 'Advisory Levels';
     renderMapLegend(map, initialLegendTitle);
 
-    // 1. REGIONAL BOUNDARIES LAYER (Below AWS Layers, white border, transparent fill)
     createGeoJSONLayer(
         'LIGTAS-BOUNDARIES',
         'Regional Boundaries',
@@ -685,7 +783,6 @@ async function updateMap(data) {
         null
     );
 
-    // 2. RECORDED LANDSLIDES POINTS LAYER
     lsdbLayer = await createGeoJSONLayer(
         'LIGTAS-LSDB',
         'Recorded Landslides',
@@ -732,10 +829,15 @@ async function updateMap(data) {
         }
     });
 
+    // Apply hierarchy sorting & anti-overlap spatial offset
+    const sortedData = sortDataByWarningHierarchy(data);
+    const adjustedData = applyOverlapOffset(sortedData);
+
     stationMarkersRegistry = [];
-    data.forEach(item => {
-        if (item.Lat && item.Lng) {
-            const coords = [parseFloat(item.Lat), parseFloat(item.Lng)];
+    adjustedData.forEach(item => {
+        if (item._renderLat && item._renderLng) {
+            const coords = [item._renderLat, item._renderLng];
+            const warningPriority = getWarningLevelPriority(item.Warning);
             
             let marker;
             const activeIconUrl = currentCustomIconUrl || item.Icon_URL;
@@ -747,9 +849,20 @@ async function updateMap(data) {
                     iconAnchor: [18, 36],
                     popupAnchor: [0, -36]
                 });
-                marker = L.marker(coords, { icon: customIcon });
+                marker = L.marker(coords, { 
+                    icon: customIcon,
+                    zIndexOffset: warningPriority 
+                });
             } else {
-                marker = L.circleMarker(coords, { radius: 0, opacity: 0, fillOpacity: 0 });
+                marker = L.circleMarker(coords, { 
+                    radius: 7, 
+                    fillColor: getWarningColor(item.Warning),
+                    color: '#ffffff',
+                    weight: 1.5,
+                    opacity: 0.9,
+                    fillOpacity: 0.85,
+                    zIndexOffset: warningPriority
+                });
             }
 
             marker.bindTooltip(item.AWS_Name, { 
@@ -762,7 +875,8 @@ async function updateMap(data) {
             stationMarkersRegistry.push({
                 awsKey: item._awsKey,
                 marker: marker,
-                coords: coords
+                coords: coords,
+                warningPriority: warningPriority
             });
         }
     });
@@ -812,7 +926,6 @@ function applyAwsFilters() {
 
     const boundsToFocus = [];
 
-    // Toggle Landslide Database Layer
     if (lsdbLayer) {
         if (awsLayerState['LIGTAS-LSDB'] !== false) {
             if (!map.hasLayer(lsdbLayer)) map.addLayer(lsdbLayer);
@@ -860,7 +973,6 @@ function buildAwsControlUI() {
     listContainer.innerHTML = '';
     let activeCount = 0;
 
-    // Render AWS Station items
     AWS_CONFIG_LIST.forEach(item => {
         const isChecked = awsLayerState[item.key] !== false;
         if (isChecked) activeCount++;
@@ -874,7 +986,6 @@ function buildAwsControlUI() {
         listContainer.appendChild(row);
     });
 
-    // Render Section Divider & Recorded Landslides Toggle Row
     const divider = document.createElement('hr');
     divider.style.cssText = 'margin: 8px 0; border: 0; border-top: 1px dashed var(--border-color, rgba(255, 255, 255, 0.15));';
     listContainer.appendChild(divider);
@@ -931,10 +1042,14 @@ function toggleAwsMenu(e) {
     }
 }
 
-document.addEventListener('click', () => {
+// Global click listener dismisses dropdown when clicking outside
+document.addEventListener('click', (e) => {
     const panel = document.getElementById('aws-menu-panel');
+    const wrapper = document.querySelector('.aws-dropdown-wrapper');
     if (panel && panel.classList.contains('show')) {
-        panel.classList.remove('show');
+        if (wrapper && !wrapper.contains(e.target)) {
+            panel.classList.remove('show');
+        }
     }
 });
 
@@ -978,6 +1093,7 @@ function renderGeoJsonData(geoData, customLayerName = 'Custom GeoJSON Overlay') 
         pointToLayer: function (feature, latlng) {
             const level = feature.properties?.Warning || feature.properties?.warning || feature.properties?.LEVEL;
             const color = level !== undefined ? getWarningColor(level) : selectedColor;
+            const zIndex = level !== undefined ? getWarningLevelPriority(level) : 0;
 
             if (currentCustomIconUrl) {
                 const customIcon = L.icon({
@@ -986,7 +1102,7 @@ function renderGeoJsonData(geoData, customLayerName = 'Custom GeoJSON Overlay') 
                     iconAnchor: [16, 32],
                     popupAnchor: [0, -32]
                 });
-                return L.marker(latlng, { icon: customIcon });
+                return L.marker(latlng, { icon: customIcon, zIndexOffset: zIndex });
             }
 
             return L.circleMarker(latlng, {
@@ -995,7 +1111,8 @@ function renderGeoJsonData(geoData, customLayerName = 'Custom GeoJSON Overlay') 
                 color: '#ffffff',
                 weight: 1.5,
                 opacity: 0.9,
-                fillOpacity: 0.85
+                fillOpacity: 0.85,
+                zIndexOffset: zIndex
             });
         },
         style: function (feature) {
@@ -1139,6 +1256,13 @@ document.addEventListener('DOMContentLoaded', () => {
     initTheme();
     syncCurrentTime();
     renderFooterCredits();
+
+    const awsMenuPanel = document.getElementById('aws-menu-panel');
+    if (awsMenuPanel) {
+        awsMenuPanel.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+    }
 
     const dashboard = document.getElementById('dashboard-content');
     const leftPanel = document.getElementById('left-panel');
