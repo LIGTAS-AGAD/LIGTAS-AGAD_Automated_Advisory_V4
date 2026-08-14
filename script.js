@@ -1,3 +1,11 @@
+/* ========================================================= */
+/* CONFIGURATION & DATA SETTINGS                             */
+/* ========================================================= */
+
+// URL of your published Google Sheet CSV containing Bulletin Messages
+// Replace 'YOUR_PUBLISHED_SHEET_ID' with your actual Google Sheet published CSV URL
+const BULLETIN_MESSAGES_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQYTaO1BQcuz4Jn5IOqK52vV1n4ikD1v6AfzhvFEx9hNktLjec3rq_jv_gaWiBkqPJjdLpkAeYz-u1n/pub?gid=2034228274&single=true&output=csv';
+
 const CONFIG = {
     'car': {
         url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSosfBP3StMyRUzwI0tUZPsLjPVH1zePCz8gZbTMOzjOvnonbmNCoy5VT46UxO0qdqb-Wm9EqTpXp8y/pub?gid=989357250&single=true&output=csv',
@@ -67,7 +75,12 @@ const TAGALOG_MONTHS = [
     'Hulyo', 'Agosto', 'Setyembre', 'Oktubre', 'Nobyembre', 'Disyembre'
 ];
 
+/* ========================================================= */
+/* GLOBAL VARIABLES & STATE                                  */
+/* ========================================================= */
+
 const geoJsonCache = new Map();
+let bulletinMessagesMap = {}; // Global cache for Google Sheets custom texts
 
 let map;
 let leafletLayerControl = null;
@@ -84,12 +97,9 @@ let highlightedLayer = null;
 let currentCustomIconUrl = null;
 
 /* ========================================================= */
-/* AWS Hierarchy Algorithm & Overlap Offset Logic             */
+/* AWS HIERARCHY & OVERLAP OFFSET LOGIC                       */
 /* ========================================================= */
 
-/**
- * Priority score based on warning level (Higher = Higher Priority)
- */
 function getWarningLevelPriority(val) {
     const level = String(val).trim();
     switch (level) {
@@ -97,13 +107,10 @@ function getWarningLevelPriority(val) {
         case '2': return 3000;
         case '1': return 2000;
         case '0': return 1000;
-        default:  return 0; // N/A or default
+        default:  return 0;
     }
 }
 
-/**
- * Sorts data array according to warning level severity (Level 3 > Level 2 > Level 1 > Level 0 > N/A)
- */
 function sortDataByWarningHierarchy(data) {
     if (!Array.isArray(data)) return [];
     return [...data].sort((a, b) => {
@@ -112,24 +119,17 @@ function sortDataByWarningHierarchy(data) {
         if (prioB !== prioA) {
             return prioB - prioA;
         }
-        // Secondary sort: Cumulative rainfall value descending
         const cumA = parseFloat(a.Cumulative) || 0;
         const cumB = parseFloat(b.Cumulative) || 0;
         return cumB - cumA;
     });
 }
 
-/**
- * Anti-overlap jittering algorithm.
- * Identifies markers sharing spatial coordinates and applies micro-offsets so lower warning level
- * markers do not obscure highest priority stations. High warning stations stay centered.
- */
 function applyOverlapOffset(data) {
     const coordGroup = new Map();
 
     data.forEach(item => {
         if (item.Lat && item.Lng) {
-            // Group coordinates rounded to 4 decimal places (~10m precision threshold)
             const key = `${parseFloat(item.Lat).toFixed(4)},${parseFloat(item.Lng).toFixed(4)}`;
             if (!coordGroup.has(key)) {
                 coordGroup.set(key, []);
@@ -140,19 +140,16 @@ function applyOverlapOffset(data) {
 
     coordGroup.forEach(group => {
         if (group.length > 1) {
-            // Sort ascending by warning priority inside the cluster group so higher warning stays centered & rendered on top
             group.sort((a, b) => getWarningLevelPriority(a.Warning) - getWarningLevelPriority(b.Warning));
 
             const total = group.length;
             group.forEach((item, index) => {
                 if (index < total - 1) {
-                    // Apply spiral offset for overlapping lower-priority markers
                     const angle = (index * 2 * Math.PI) / (total - 1);
-                    const radius = 0.00025; // ~25 meters spatial offset
+                    const radius = 0.00025; // ~25 meters offset
                     item._renderLat = parseFloat(item.Lat) + Math.sin(angle) * radius;
                     item._renderLng = parseFloat(item.Lng) + Math.cos(angle) * radius;
                 } else {
-                    // Keep top-priority warning station at exact geographic coordinate center
                     item._renderLat = parseFloat(item.Lat);
                     item._renderLng = parseFloat(item.Lng);
                 }
@@ -165,6 +162,131 @@ function applyOverlapOffset(data) {
 
     return data;
 }
+
+/* ========================================================= */
+/* DYNAMIC BULLETIN TEXTS & GOOGLE SHEET PARSER              */
+/* ========================================================= */
+
+/**
+ * Fetches bulletin messages CSV from Google Sheets via PapaParse
+ */
+function fetchBulletinMessages(url) {
+    return new Promise((resolve) => {
+        if (!url || url.includes('YOUR_PUBLISHED_SHEET_ID')) {
+            console.warn('BULLETIN_MESSAGES_URL not configured. Using default fallback messages.');
+            resolve(false);
+            return;
+        }
+
+        Papa.parse(url, {
+            download: true,
+            header: true,
+            skipEmptyLines: true,
+            complete: function(results) {
+                if (results.data && results.data.length > 0) {
+                    bulletinMessagesMap = {};
+                    results.data.forEach(row => {
+                        const region = (row.Region_ID || 'default').toLowerCase().trim();
+                        const level = (row.Warning_Level || '').toString().trim();
+                        const key = `${region}_${level}`;
+
+                        bulletinMessagesMap[key] = {
+                            hazardText: row.Hazard_Text ? row.Hazard_Text.trim() : null,
+                            lguAction: row.LGU_Action_Text ? row.LGU_Action_Text.trim() : null
+                        };
+                    });
+                }
+                resolve(true);
+            },
+            error: function(err) {
+                console.warn('Failed to fetch bulletin messages CSV:', err);
+                resolve(false);
+            }
+        });
+    });
+}
+
+/**
+ * Evaluates Hazard Message based on warning level, multi-day persistence, and Google Sheet override.
+ */
+function evaluateHazardMessage(regionId, levelStr) {
+    const storageKey = `ligtas_high_warning_start_${regionId}`;
+    let keyLevel = levelStr;
+
+    if (levelStr === '3') {
+        const storedTimestamp = localStorage.getItem(storageKey);
+        const now = Date.now();
+
+        if (!storedTimestamp) {
+            localStorage.setItem(storageKey, now.toString());
+        } else {
+            const elapsedHours = (now - parseInt(storedTimestamp, 10)) / (1000 * 60 * 60);
+            if (elapsedHours >= 24) {
+                keyLevel = '3_persistent';
+            }
+        }
+    } else {
+        localStorage.removeItem(storageKey);
+    }
+
+    // Lookup sequence: 1. Specific Region Key -> 2. Default Region Key
+    const regionKey = `${regionId.toLowerCase()}_${keyLevel}`;
+    const defaultKey = `default_${keyLevel}`;
+    const customMsg = bulletinMessagesMap[regionKey]?.hazardText || bulletinMessagesMap[defaultKey]?.hazardText;
+
+    if (customMsg) return customMsg;
+
+    // Hardcoded Tagalog Fallbacks
+    if (keyLevel === '3_persistent') {
+        return 'Nanatiling nakataas sa alert level: ang mga sumusunod na lugar manatiling mag ingat sa banta ng mga pagguho ng lupa';
+    } else if (levelStr === '3') {
+        return 'Mataas ang panganib ng pagguho ng lupa sa susunod na 12 oras!';
+    } else if (levelStr === '2') {
+        return 'Posibleng magkaroon ng pagguho ng lupa sa mga dalisdis at kabundukan.';
+    } else if (levelStr === '1') {
+        return 'Panatilihin ang pagsubaybay sa lagay ng panahon at ulan.';
+    } else {
+        return 'Ligtas at normal na kalagayan. Manatiling alerto.';
+    }
+}
+
+/**
+ * Evaluates LGU Action Message based on warning level, multi-day persistence, and Google Sheet override.
+ */
+function evaluateLguActionMessage(regionId, levelStr) {
+    const storageKey = `ligtas_high_warning_start_${regionId}`;
+    let keyLevel = levelStr;
+
+    if (levelStr === '3') {
+        const storedTimestamp = localStorage.getItem(storageKey);
+        if (storedTimestamp) {
+            const elapsedHours = (Date.now() - parseInt(storedTimestamp, 10)) / (1000 * 60 * 60);
+            if (elapsedHours >= 24) {
+                keyLevel = '3_persistent';
+            }
+        }
+    }
+
+    // Lookup sequence: 1. Specific Region Key -> 2. Default Region Key
+    const regionKey = `${regionId.toLowerCase()}_${keyLevel}`;
+    const defaultKey = `default_${keyLevel}`;
+    const customAction = bulletinMessagesMap[regionKey]?.lguAction || bulletinMessagesMap[defaultKey]?.lguAction;
+
+    if (customAction) return customAction;
+
+    // Hardcoded Tagalog Fallbacks
+    if (levelStr === '3') {
+        return 'Iniaatas sa lahat ng kinauukulang Local Chief Executives at DRRM Officers ang agarang pagpapatupad ng kani-kanilang localized Emergency Response Plans, kabilang ang pagmamasad sa mga critical slopes, pagpapatupad ng pre-emptive evacuation sa mga flood at landslide-prone areas, at ang patuloy na pagpapaalala sa publiko.';
+    } else if (levelStr === '2') {
+        return 'Ihanda ang Emergency Response Units. Isagawa ang inspeksyon sa mga hazard areas at payuhan ang BDRRMC na maging handa sa posibleng evacuation.';
+    } else {
+        return 'Maging alerto at magpatupad ng patuloy na pagsubaybay sa mga weather station at rainfall thresholds sa sakop na hurisdiksyon.';
+    }
+}
+
+/* ========================================================= */
+/* UTILITIES & HELPER FUNCTIONS                              */
+/* ========================================================= */
 
 function filterAwsLayersByRegion(data = []) {
     const activeKeysInCsv = new Set(
@@ -341,6 +463,10 @@ function buildAttributeTableHTML(properties) {
     `;
 }
 
+/* ========================================================= */
+/* MAP LAYERS & RENDERERS                                    */
+/* ========================================================= */
+
 async function createGeoJSONLayer(key, name, url, styleOptions = {}, onEachFeatureCustom = null) {
     try {
         let geoData;
@@ -472,7 +598,6 @@ async function initSynchronizedAWSLayer(awsKey, geoJsonUrl, displayName, warning
             }
         });
 
-        // Elevate critical warning layers to front
         if (['3', '2'].includes(warningLevel)) {
             setTimeout(() => {
                 if (currentLayerGroup && typeof currentLayerGroup.bringToFront === 'function') {
@@ -562,6 +687,10 @@ function renderMapLegend(targetMap) {
     mapLegendControl.addTo(targetMap);
 }
 
+/* ========================================================= */
+/* REGION SWITCHING & CSV PARSING                            */
+/* ========================================================= */
+
 function switchRegion(regionId) {
     currentRegionId = regionId;
     clearGeoJson();
@@ -587,36 +716,42 @@ function switchRegion(regionId) {
 }
 
 function fetchData(url) {
-    Papa.parse(url, {
-        download: true,
-        header: true,
-        complete: async function(results) {
-            const rawData = results.data.filter(row => row.AWS_Name);
-            if (rawData.length > 0) {
-                rawData.forEach(row => {
-                    row._awsKey = matchAwsKey(row.AWS_Name);
-                });
+    // Fetch bulletin custom messages first, then process main AWS station dataset
+    fetchBulletinMessages(BULLETIN_MESSAGES_URL).then(() => {
+        Papa.parse(url, {
+            download: true,
+            header: true,
+            complete: async function(results) {
+                const rawData = results.data.filter(row => row.AWS_Name);
+                if (rawData.length > 0) {
+                    rawData.forEach(row => {
+                        row._awsKey = matchAwsKey(row.AWS_Name);
+                    });
 
-                // Apply hierarchy sorting to dataset
-                currentCsvData = sortDataByWarningHierarchy(rawData);
+                    currentCsvData = sortDataByWarningHierarchy(rawData);
 
-                filterAwsLayersByRegion(currentCsvData);
+                    filterAwsLayersByRegion(currentCsvData);
 
-                syncCurrentTime();
-                
-                await updateMap(currentCsvData);
-                applyAwsFilters();
-            } else {
-                handleError("No data found in dataset.");
+                    syncCurrentTime();
+                    
+                    await updateMap(currentCsvData);
+                    applyAwsFilters();
+                } else {
+                    handleError("No data found in dataset.");
+                }
+                document.getElementById('loading-overlay').style.display = 'none';
+            },
+            error: function(err) {
+                handleError("Connection Timeout or CSV Load Error.");
+                document.getElementById('loading-overlay').style.display = 'none';
             }
-            document.getElementById('loading-overlay').style.display = 'none';
-        },
-        error: function(err) {
-            handleError("Connection Timeout or CSV Load Error.");
-            document.getElementById('loading-overlay').style.display = 'none';
-        }
+        });
     });
 }
+
+/* ========================================================= */
+/* AUTOMATED BULLETIN & TABLE UPDATES                        */
+/* ========================================================= */
 
 function updateAutomatedBulletin(visibleData) {
     const config = CONFIG[currentRegionId] || CONFIG['car'];
@@ -644,16 +779,13 @@ function updateAutomatedBulletin(visibleData) {
     alertTitleEl.innerText = `LANDSLIDE ALERT ${levelText}`;
     regionLabelEl.innerText = `${config.provinceName} | ${config.regionName}`;
 
+    // Dynamic hazard text using persistent calculation and Google Sheet CSV mapping
     const hazardEl = document.getElementById('bulletin-hazard-text');
-    if (levelStr === '3') {
-        hazardEl.innerText = 'Mataas ang panganib ng pagguho ng lupa sa susunod na 12 oras!';
-    } else if (levelStr === '2') {
-        hazardEl.innerText = 'Posibleng magkaroon ng pagguho ng lupa sa mga dalisdis at kabundukan.';
-    } else if (levelStr === '1') {
-        hazardEl.innerText = 'Panatilihin ang pagsubaybay sa lagay ng panahon at ulan.';
-    } else {
-        hazardEl.innerText = 'Ligtas at normal na kalagayan. Manatiling alerto.';
-    }
+    hazardEl.innerText = evaluateHazardMessage(currentRegionId, levelStr);
+
+    // Dynamic LGU action text using persistent calculation and Google Sheet CSV mapping
+    const lguActionEl = document.getElementById('bulletin-lgu-action');
+    lguActionEl.innerText = evaluateLguActionMessage(currentRegionId, levelStr);
 
     const affectedMunis = Array.from(new Set(
         visibleData
@@ -675,15 +807,6 @@ function updateAutomatedBulletin(visibleData) {
     const levelBadgeEl = document.getElementById('bulletin-level-badge');
     levelBadgeEl.className = `inline-level-badge level-${levelStr}`;
     levelBadgeEl.innerText = `LANDSLIDE ALERT ${levelText}`;
-
-    const lguActionEl = document.getElementById('bulletin-lgu-action');
-    if (levelStr === '3') {
-        lguActionEl.innerText = 'Iniaatas sa lahat ng kinauukulang Local Chief Executives at DRRM Officers ang agarang pagpapatupad ng kani-kanilang localized Emergency Response Plans, kabilang ang pagmamasad sa mga critical slopes, pagpapatupad ng pre-emptive evacuation sa mga flood at landslide-prone areas, at ang patuloy na pagpapaalala sa publiko.';
-    } else if (levelStr === '2') {
-        lguActionEl.innerText = 'Ihanda ang Emergency Response Units. Isagawa ang inspeksyon sa mga hazard areas at payuhan ang BDRRMC na maging handa sa posibleng evacuation.';
-    } else {
-        lguActionEl.innerText = 'Maging alerto at magpatupad ng patuloy na pagsubaybay sa mga weather station at rainfall thresholds sa sakop na hurisdiksyon.';
-    }
 
     const publicListEl = document.getElementById('bulletin-public-action-list');
     if (levelStr === '3' || levelStr === '2') {
@@ -707,8 +830,6 @@ function updateTable(data) {
     tbody.innerHTML = '';
 
     const visibleData = data.filter(row => !row._awsKey || awsLayerState[row._awsKey] !== false);
-    
-    // Sort table rows by warning hierarchy (High Risk on top)
     const sortedVisibleData = sortDataByWarningHierarchy(visibleData);
 
     sortedVisibleData.forEach(row => {
@@ -829,7 +950,6 @@ async function updateMap(data) {
         }
     });
 
-    // Apply hierarchy sorting & anti-overlap spatial offset
     const sortedData = sortDataByWarningHierarchy(data);
     const adjustedData = applyOverlapOffset(sortedData);
 
@@ -966,6 +1086,10 @@ function applyAwsFilters() {
     syncAwsControlUI();
 }
 
+/* ========================================================= */
+/* AWS CONTROLS & DROPDOWN UI                                */
+/* ========================================================= */
+
 function buildAwsControlUI() {
     const listContainer = document.getElementById('aws-checkbox-list');
     if (!listContainer) return;
@@ -1042,7 +1166,6 @@ function toggleAwsMenu(e) {
     }
 }
 
-// Global click listener dismisses dropdown when clicking outside
 document.addEventListener('click', (e) => {
     const panel = document.getElementById('aws-menu-panel');
     const wrapper = document.querySelector('.aws-dropdown-wrapper');
@@ -1052,6 +1175,10 @@ document.addEventListener('click', (e) => {
         }
     }
 });
+
+/* ========================================================= */
+/* GEOJSON & ICON UPLOAD HANDLERS                            */
+/* ========================================================= */
 
 function handleCustomIconUpload(event) {
     const file = event.target.files[0];
@@ -1251,6 +1378,10 @@ function handleError(msg) {
     const errDiv = document.getElementById('error-message');
     if (errDiv) { errDiv.innerText = msg; errDiv.style.display = 'block'; }
 }
+
+/* ========================================================= */
+/* INITIALIZATION & EVENT LISTENERS                          */
+/* ========================================================= */
 
 document.addEventListener('DOMContentLoaded', () => {
     initTheme();
