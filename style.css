@@ -48,7 +48,7 @@
 body, html {
     width: 100%;
     height: 100%;
-    height: 100dvh; /* Dynamic viewport height to account for mobile browser UI */
+    height: 100dvh;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     background-color: var(--bg-dark);
     color: var(--text-main);
@@ -56,7 +56,6 @@ body, html {
     transition: background-color 0.25s ease, color 0.25s ease;
 }
 
-/* Base Body Background Image */
 body {
     background: 
         linear-gradient(rgba(26, 59, 66, 0.85), rgba(26, 59, 66, 0.92)),
@@ -65,7 +64,6 @@ body {
     min-height: 100dvh;
 }
 
-/* Light Theme Background Override */
 [data-theme="light"] body {
     background: 
         linear-gradient(rgba(205, 242, 243, 0.88), rgba(205, 242, 243, 0.95)),
@@ -239,6 +237,8 @@ body {
 .control-card, 
 .info-card, 
 .table-card {
+    position: relative;
+    z-index: 1;
     background: rgba(64, 77, 86, 0.75) !important;
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
@@ -247,6 +247,11 @@ body {
     border-radius: 6px;
     padding: 12px;
     transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+
+/* Fix: Elevate AWS Control Card Stacking Context */
+.aws-control-card {
+    z-index: 50 !important;
 }
 
 [data-theme="light"] .bulletin-card,
@@ -373,24 +378,31 @@ body {
     cursor: pointer;
 }
 
-/* AWS Dropdown Panel */
+/* AWS Dropdown Panel Fixes */
 .aws-dropdown-wrapper {
     position: relative;
+    z-index: 100;
 }
 
 .aws-menu-panel {
     display: none;
     position: absolute;
-    top: 100%;
+    top: calc(100% + 4px);
     left: 0;
     right: 0;
     background-color: var(--bg-panel);
     border: 1px solid var(--border-color);
-    border-radius: 4px;
-    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
-    z-index: 100;
-    padding: 8px;
-    margin-top: 4px;
+    border-radius: 6px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    padding: 10px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+[data-theme="light"] .aws-menu-panel {
+    background-color: #ffffff;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
 }
 
 .aws-menu-panel.show { display: block; }
@@ -412,20 +424,37 @@ body {
 }
 
 .aws-checkbox-list {
-    max-height: 180px;
+    max-height: 200px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 4px;
+    padding-right: 2px;
 }
 
 .aws-item-row {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 0.75rem;
+    font-size: 0.78rem;
     color: var(--text-main);
     cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: background-color 0.15s ease;
+}
+
+.aws-item-row:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="light"] .aws-item-row:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.aws-item-row input[type="checkbox"] {
+    cursor: pointer;
+    accent-color: var(--accent-blue);
 }
 
 /* Info Cards & Bulletins */
@@ -654,11 +683,8 @@ body {
     color: var(--text-main);
 }
 
-/* ========================================================= */
-/* Mobile & Small Device Fixes (<= 768px)                     */
-/* ========================================================= */
+/* Mobile & Small Device Fixes (<= 768px) */
 @media screen and (max-width: 768px) {
-    /* Allow mobile page to scroll top-to-bottom */
     body, html {
         overflow-y: auto !important;
         height: auto !important;
@@ -678,7 +704,6 @@ body {
         gap: 8px;
     }
 
-    /* Stack dashboard vertically */
     .dashboard-content, #dashboard-content {
         flex-direction: column !important;
         height: auto !important;
@@ -686,28 +711,25 @@ body {
         overflow-y: visible !important;
     }
 
-    /* Hide desktop panel resizer */
     .resizer, #resizer {
         display: none !important;
     }
 
-    /* Mandatory Fix: Explicit map container sizing for mobile screens */
     .right-panel, 
     #right-panel, 
     .map-container,
     .advisory-map, 
     #advisory-map {
         width: 100% !important;
-        height: 350px !important; /* Prevents map canvas from collapsing to 0px */
+        height: 350px !important;
         min-height: 300px !important;
-        flex-shrink: 0 !important; /* Keeps map from shrinking */
-        order: 1 !important; /* Places map above text panels on mobile */
+        flex-shrink: 0 !important;
+        order: 1 !important;
         position: relative !important;
         display: block !important;
         z-index: 1;
     }
 
-    /* Panel text controls slide beneath map */
     .left-panel, #left-panel {
         width: 100% !important;
         flex: none !important;
@@ -718,7 +740,6 @@ body {
         order: 2 !important;
     }
 
-    /* Horizontal scroll for region navigation buttons */
     .nav-container, .region-nav-bar, .region-nav {
         display: flex !important;
         overflow-x: auto !important;
@@ -735,7 +756,6 @@ body {
         padding: 8px 12px !important;
     }
 
-    /* Horizontal scroll for data tables */
     .table-container, .table-wrapper {
         width: 100% !important;
         overflow-x: auto !important;
